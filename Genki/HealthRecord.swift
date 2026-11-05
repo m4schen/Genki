@@ -117,7 +117,7 @@ final class RecordAttachment {
     }
 }
 
-enum HealthRecordCategory: String, CaseIterable, Identifiable {
+nonisolated enum HealthRecordCategory: String, CaseIterable, Identifiable {
     case visit
     case checkup
     case test
@@ -135,7 +135,7 @@ enum HealthRecordCategory: String, CaseIterable, Identifiable {
     }
 }
 
-enum AttachmentKind: String, CaseIterable, Identifiable {
+nonisolated enum AttachmentKind: String, CaseIterable, Identifiable {
     case document
     case medicalImage
     case photo
@@ -153,7 +153,7 @@ enum AttachmentKind: String, CaseIterable, Identifiable {
     }
 }
 
-enum AttachmentSource: String {
+nonisolated enum AttachmentSource: String {
     case scanner
     case photoLibrary
     case fileImport
