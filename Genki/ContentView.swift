@@ -9,7 +9,7 @@ struct ContentView: View {
     @State private var searchText = ""
     @State private var isShowingNewRecord = false
     @State private var demoSeedError: String?
-    @State private var pendingDeletion: [HealthRecord]?
+    @State private var pendingDeletion: HealthRecord?
     @State private var deletionError: String?
 
     private var filteredRecords: [HealthRecord] {
@@ -57,9 +57,14 @@ struct ContentView: View {
                                     } label: {
                                         HealthRecordRow(record: record)
                                     }
-                                }
-                                .onDelete { offsets in
-                                    pendingDeletion = offsets.map { section.records[$0] }
+                                    // A swipe action, not `.onDelete`. `.onDelete` animates
+                                    // the row away before the patient confirms.
+                                    .swipeActions(edge: .trailing) {
+                                        Button("删除", systemImage: "trash") {
+                                            pendingDeletion = record
+                                        }
+                                        .tint(.red)
+                                    }
                                 }
                             } header: {
                                 Text(
@@ -110,9 +115,9 @@ struct ContentView: View {
                 isPresented: Binding(isPresenting: $pendingDeletion),
                 titleVisibility: .visible,
                 presenting: pendingDeletion
-            ) { records in
+            ) { record in
                 Button("删除", role: .destructive) {
-                    delete(records)
+                    delete(record)
                 }
                 Button("取消", role: .cancel) {}
             } message: { _ in
@@ -131,10 +136,10 @@ struct ContentView: View {
 
     /// Runs only after the patient confirms (non-negotiable 3). It saves
     /// explicitly. If the save fails, the deletion is rolled back so the
-    /// records reappear instead of being half-deleted.
-    private func delete(_ records: [HealthRecord]) {
+    /// record reappears instead of being half-deleted.
+    private func delete(_ record: HealthRecord) {
         withAnimation {
-            records.forEach(modelContext.delete)
+            modelContext.delete(record)
         }
 
         do {
