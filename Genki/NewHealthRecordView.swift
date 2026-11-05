@@ -90,7 +90,7 @@ struct NewHealthRecordView: View {
             }
             .alert(
                 "无法处理资料",
-                isPresented: isPresenting($errorMessage)
+                isPresented: Binding(isPresenting: $errorMessage)
             ) {
                 Button("好", role: .cancel) {}
             } message: {
@@ -98,7 +98,7 @@ struct NewHealthRecordView: View {
             }
             .alert(
                 "无法保存记录",
-                isPresented: isPresenting($saveErrorMessage)
+                isPresented: Binding(isPresenting: $saveErrorMessage)
             ) {
                 Button("好", role: .cancel) {}
             } message: {
@@ -299,13 +299,6 @@ struct NewHealthRecordView: View {
         Binding(
             get: { draft.followUpDate != nil },
             set: { draft.followUpDate = $0 ? (draft.followUpDate ?? .now) : nil }
-        )
-    }
-
-    private func isPresenting(_ message: Binding<String?>) -> Binding<Bool> {
-        Binding(
-            get: { message.wrappedValue != nil },
-            set: { if !$0 { message.wrappedValue = nil } }
         )
     }
 
