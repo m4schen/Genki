@@ -1,0 +1,10 @@
+# SwiftLint gate (AGENTS.md → Quality gates, T-003). Run: swiftlint lint --strict
+# Defaults stay on. The only change matches this codebase's existing style
+# and Airbnb's #trailing-commas rule: multi-line lists end with a comma.
+
+included:
+  - Genki
+  - GenkiTests
+
+trailing_comma:
+  mandatory_comma: true

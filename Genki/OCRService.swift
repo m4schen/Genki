@@ -79,15 +79,15 @@ nonisolated enum HealthFieldExtractor {
         ExtractedHealthFields(
             occurredAt: reportDate(in: text),
             category: category(in: text),
-            hospitalName: firstValue(in: text, matching: Pattern.hospitalName),
-            department: firstValue(in: text, matching: Pattern.department),
-            doctorName: firstValue(in: text, matching: Pattern.doctorName),
-            medicalRecordNumber: firstValue(in: text, matching: Pattern.medicalRecordNumber),
-            visitReason: firstValue(in: text, matching: Pattern.visitReason),
-            diagnosisOrConclusion: firstValue(in: text, matching: Pattern.diagnosisOrConclusion),
-            examinationResults: firstValue(in: text, matching: Pattern.examinationResults),
-            medications: firstValue(in: text, matching: Pattern.medications),
-            doctorAdvice: firstValue(in: text, matching: Pattern.doctorAdvice)
+            hospitalName: firstValue(in: text, matching: FieldPattern.hospitalName),
+            department: firstValue(in: text, matching: FieldPattern.department),
+            doctorName: firstValue(in: text, matching: FieldPattern.doctorName),
+            medicalRecordNumber: firstValue(in: text, matching: FieldPattern.medicalRecordNumber),
+            visitReason: firstValue(in: text, matching: FieldPattern.visitReason),
+            diagnosisOrConclusion: firstValue(in: text, matching: FieldPattern.diagnosisOrConclusion),
+            examinationResults: firstValue(in: text, matching: FieldPattern.examinationResults),
+            medications: firstValue(in: text, matching: FieldPattern.medications),
+            doctorAdvice: firstValue(in: text, matching: FieldPattern.doctorAdvice)
         )
     }
 
@@ -99,7 +99,7 @@ nonisolated enum HealthFieldExtractor {
     ) -> String? {
         guard let match = text.firstMatch(of: pattern) else { return nil }
 
-        let value = match.1.trimmingCharacters(in: .whitespacesAndNewlines)
+        let value = String(match.1).trimmed
         return value.isEmpty ? nil : value
     }
 
@@ -112,8 +112,12 @@ nonisolated enum HealthFieldExtractor {
     }
 
     private static func reportDate(in text: String) -> Date? {
+        // Captures year, month and day. The regex literal is checked by the
+        // compiler, like the patterns in `FieldPattern`.
+        let reportDate = #/(?:就诊日期|检查日期|体检日期|报告日期|日期)\s*[:：]?\s*(20\d{2})[年./-](\d{1,2})[月./-](\d{1,2})/#
+
         guard
-            let match = text.firstMatch(of: Pattern.reportDate),
+            let match = text.firstMatch(of: reportDate),
             let year = Int(match.1),
             let month = Int(match.2),
             let day = Int(match.3)
@@ -139,59 +143,54 @@ nonisolated enum HealthFieldExtractor {
 
         return date
     }
+}
 
-    // MARK: Patterns
+// MARK: - Patterns
 
-    /// Regex literals are checked by the compiler, so a typo is a build
-    /// error, not a field that silently never matches.
-    ///
-    /// A value must start with a visible character that isn't a colon, so a
-    /// bare "诊断：无" can't turn the colon into the value.
-    ///
-    /// These are computed rather than stored: `Regex` isn't `Sendable`, so a
-    /// shared instance would be a data race under Swift 6.
-    private enum Pattern {
-        typealias OneCapture = Regex<(Substring, Substring)>
+/// Regex literals are checked by the compiler, so a typo is a build
+/// error, not a field that silently never matches.
+///
+/// A value must start with a visible character that isn't a colon, so a
+/// bare "诊断：无" can't turn the colon into the value.
+///
+/// These are computed rather than stored: `Regex` isn't `Sendable`, so a
+/// shared instance would be a data race under Swift 6.
+private nonisolated enum FieldPattern {
+    typealias OneCapture = Regex<(Substring, Substring)>
 
-        static var hospitalName: OneCapture {
-            #/([^\n]{2,30}(?:医院|卫生院|医疗中心|体检中心))/#
-        }
+    static var hospitalName: OneCapture {
+        #/([^\n]{2,30}(?:医院|卫生院|医疗中心|体检中心))/#
+    }
 
-        static var department: OneCapture {
-            #/(?:就诊科室|检查科室|科室)\s*[:：]?\s*([^\s，,。;；:：]{2,20})/#
-        }
+    static var department: OneCapture {
+        #/(?:就诊科室|检查科室|科室)\s*[:：]?\s*([^\s，,。;；:：]{2,20})/#
+    }
 
-        static var doctorName: OneCapture {
-            #/(?:医生|医师|检查医师|报告医师)\s*[:：]?\s*([^\s，,。;；:：]{2,12})/#
-        }
+    static var doctorName: OneCapture {
+        #/(?:医生|医师|检查医师|报告医师)\s*[:：]?\s*([^\s，,。;；:：]{2,12})/#
+    }
 
-        static var medicalRecordNumber: OneCapture {
-            #/(?:病历号|病案号|门诊号|住院号|报告编号)\s*[:：]?\s*([A-Za-z0-9-]+)/#
-        }
+    static var medicalRecordNumber: OneCapture {
+        #/(?:病历号|病案号|门诊号|住院号|报告编号)\s*[:：]?\s*([A-Za-z0-9-]+)/#
+    }
 
-        static var visitReason: OneCapture {
-            #/(?:就诊原因|主诉)\s*[:：]?\s*([^\s:：][^\n]{1,199})/#
-        }
+    static var visitReason: OneCapture {
+        #/(?:就诊原因|主诉)\s*[:：]?\s*([^\s:：][^\n]{1,199})/#
+    }
 
-        static var diagnosisOrConclusion: OneCapture {
-            #/(?:诊断结果|临床诊断|初步诊断|检查结论|诊断|结论|印象)\s*[:：]?\s*([^\s:：][^\n]{1,299})/#
-        }
+    static var diagnosisOrConclusion: OneCapture {
+        #/(?:诊断结果|临床诊断|初步诊断|检查结论|诊断|结论|印象)\s*[:：]?\s*([^\s:：][^\n]{1,299})/#
+    }
 
-        static var examinationResults: OneCapture {
-            #/(?:检查所见|检查结果|检验结果|体检结果)\s*[:：]?\s*([^\s:：][^\n]{1,499})/#
-        }
+    static var examinationResults: OneCapture {
+        #/(?:检查所见|检查结果|检验结果|体检结果)\s*[:：]?\s*([^\s:：][^\n]{1,499})/#
+    }
 
-        static var medications: OneCapture {
-            #/(?:处方|用药|药品名称)\s*[:：]?\s*([^\s:：][^\n]{1,299})/#
-        }
+    static var medications: OneCapture {
+        #/(?:处方|用药|药品名称)\s*[:：]?\s*([^\s:：][^\n]{1,299})/#
+    }
 
-        static var doctorAdvice: OneCapture {
-            #/(?:医嘱|医生建议|处理意见|建议)\s*[:：]?\s*([^\s:：][^\n]{1,299})/#
-        }
-
-        /// Captures year, month and day.
-        static var reportDate: Regex<(Substring, Substring, Substring, Substring)> {
-            #/(?:就诊日期|检查日期|体检日期|报告日期|日期)\s*[:：]?\s*(20\d{2})[年./-](\d{1,2})[月./-](\d{1,2})/#
-        }
+    static var doctorAdvice: OneCapture {
+        #/(?:医嘱|医生建议|处理意见|建议)\s*[:：]?\s*([^\s:：][^\n]{1,299})/#
     }
 }

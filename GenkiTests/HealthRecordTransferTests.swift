@@ -48,7 +48,7 @@ struct HealthRecordTransferTests {
     func identifiersEncodeAsStrings() throws {
         let encoded = try JSONEncoder().encode([HealthRecordFieldIdentifier.rawOCRText])
 
-        #expect(String(decoding: encoded, as: UTF8.self) == #"["source.ocr-text"]"#)
+        #expect(String(bytes: encoded, encoding: .utf8) == #"["source.ocr-text"]"#)
     }
 
     @Test("The app's store opens with the full schema")

@@ -19,16 +19,24 @@ struct NewHealthRecordView: View {
     @State private var isOCRExpanded = false
     @State private var errorMessage: String?
     @State private var saveErrorMessage: String?
-    @FocusState private var focusedField: InputField?
+    @FocusState private var focusedField: RecordFormField?
 
     var body: some View {
         NavigationStack {
             Form {
-                basicsSection
-                conclusionSection
+                RecordBasicsSection(draft: $draft, focusedField: $focusedField)
+                RecordConclusionSection(draft: $draft, focusedField: $focusedField)
                 attachmentsSection
-                moreSection
-                ocrSection
+                RecordMoreSection(
+                    draft: $draft,
+                    isExpanded: $isMoreExpanded,
+                    focusedField: $focusedField
+                )
+                RecordOCRSection(
+                    draft: $draft,
+                    isExpanded: $isOCRExpanded,
+                    focusedField: $focusedField
+                )
             }
             .scrollDismissesKeyboard(.interactively)
             .navigationTitle("添加记录")
@@ -113,48 +121,6 @@ struct NewHealthRecordView: View {
 
     // MARK: Sections
 
-    private var basicsSection: some View {
-        Section {
-            Picker("记录类型", selection: binding(\.category)) {
-                ForEach(HealthRecordCategory.allCases) { value in
-                    Text(value.title).tag(value)
-                }
-            }
-            .pickerStyle(.segmented)
-
-            DatePicker("日期", selection: binding(\.occurredAt), displayedComponents: .date)
-
-            TextField("医院或体检机构", text: binding(\.hospitalName))
-                .textContentType(.organizationName)
-                .submitLabel(.next)
-                .focused($focusedField, equals: .hospital)
-                .onSubmit { focusedField = .department }
-
-            TextField("科室（可选）", text: binding(\.department))
-                .submitLabel(.next)
-                .focused($focusedField, equals: .department)
-                .onSubmit { focusedField = .conclusion }
-        } header: {
-            Text("基本信息")
-        }
-    }
-
-    private var conclusionSection: some View {
-        Section {
-            TextField(
-                "例如：未见明显异常、轻度近视、建议复查",
-                text: binding(\.diagnosisOrConclusion),
-                axis: .vertical
-            )
-            .lineLimit(3...6)
-            .focused($focusedField, equals: .conclusion)
-        } header: {
-            Text("诊断或结论")
-        } footer: {
-            Text("体检和检查没有疾病诊断时，直接记录报告结论。")
-        }
-    }
-
     private var attachmentsSection: some View {
         Section {
             if !draft.attachments.isEmpty {
@@ -211,145 +177,22 @@ struct NewHealthRecordView: View {
         }
     }
 
-    private var moreSection: some View {
-        Section {
-            DisclosureGroup("更多信息", isExpanded: $isMoreExpanded) {
-                TextField(
-                    "就诊原因或主要症状",
-                    text: binding(\.visitReason),
-                    axis: .vertical
-                )
-                .lineLimit(2...5)
-                .focused($focusedField, equals: .reason)
-
-                TextField(
-                    "检查或检验结果",
-                    text: binding(\.examinationResults),
-                    axis: .vertical
-                )
-                .lineLimit(2...6)
-                .focused($focusedField, equals: .results)
-
-                TextField(
-                    "医生建议或后续安排",
-                    text: binding(\.doctorAdvice),
-                    axis: .vertical
-                )
-                .lineLimit(2...5)
-                .focused($focusedField, equals: .advice)
-
-                TextField(
-                    "处方或用药",
-                    text: binding(\.medications),
-                    axis: .vertical
-                )
-                .lineLimit(2...5)
-                .focused($focusedField, equals: .medications)
-
-                TextField("医生姓名", text: binding(\.doctorName))
-                    .textContentType(.name)
-                    .focused($focusedField, equals: .doctor)
-
-                TextField("门诊号、住院号或报告编号", text: binding(\.medicalRecordNumber))
-                    .focused($focusedField, equals: .recordNumber)
-
-                Toggle("记录复查日期", isOn: hasFollowUpDate)
-                if let followUpDate = draft.followUpDate {
-                    DatePicker(
-                        "复查日期",
-                        selection: Binding(
-                            get: { followUpDate },
-                            set: { draft.followUpDate = $0 }
-                        ),
-                        displayedComponents: .date
-                    )
-                }
-
-                TextField("个人备注", text: $draft.notes, axis: .vertical)
-                    .lineLimit(2...5)
-                    .focused($focusedField, equals: .notes)
-            }
-        }
-    }
-
-    private var ocrSection: some View {
-        Section {
-            DisclosureGroup("OCR 原文", isExpanded: $isOCRExpanded) {
-                TextEditor(text: $draft.rawOCRText)
-                    .frame(minHeight: 150)
-                    .focused($focusedField, equals: .ocr)
-            }
-        } footer: {
-            Text("识别结果可能有误，请对照原始资料核对。")
-        }
-    }
-
-    // MARK: Bindings
-
-    /// Routes the patient's edits through `setByUser`, so the draft knows
-    /// the field is theirs and OCR must leave it alone.
-    private func binding<Value>(
-        _ field: WritableKeyPath<RecordDraft, DraftField<Value>>
-    ) -> Binding<Value> {
-        Binding(
-            get: { draft[keyPath: field].value },
-            set: { draft[keyPath: field].setByUser($0) }
-        )
-    }
-
-    /// "Has a follow-up date" is derived from the optional date, so the
-    /// toggle and the date can't disagree.
-    private var hasFollowUpDate: Binding<Bool> {
-        Binding(
-            get: { draft.followUpDate != nil },
-            set: { draft.followUpDate = $0 ? (draft.followUpDate ?? .now) : nil }
-        )
-    }
-
     // MARK: Keyboard focus
 
-    private var focusOrder: [InputField] {
-        var fields: [InputField] = [.hospital, .department, .conclusion]
-        if isMoreExpanded {
-            fields += [
-                .reason,
-                .results,
-                .advice,
-                .medications,
-                .doctor,
-                .recordNumber,
-                .notes,
-            ]
-        }
-        if isOCRExpanded {
-            fields.append(.ocr)
-        }
-        return fields
+    private var focusOrder: [RecordFormField] {
+        RecordFormField.focusOrder(isMoreExpanded: isMoreExpanded, isOCRExpanded: isOCRExpanded)
     }
 
-    private var previousField: InputField? {
-        adjacentField(offset: -1)
+    private var previousField: RecordFormField? {
+        focusedField?.adjacent(by: -1, in: focusOrder)
     }
 
-    private var nextField: InputField? {
-        adjacentField(offset: 1)
-    }
-
-    private func adjacentField(offset: Int) -> InputField? {
-        guard
-            let focusedField,
-            let index = focusOrder.firstIndex(of: focusedField)
-        else {
-            return nil
-        }
-
-        let destination = index + offset
-        guard focusOrder.indices.contains(destination) else { return nil }
-        return focusOrder[destination]
+    private var nextField: RecordFormField? {
+        focusedField?.adjacent(by: 1, in: focusOrder)
     }
 
     private func moveFocus(by offset: Int) {
-        focusedField = adjacentField(offset: offset)
+        focusedField = focusedField?.adjacent(by: offset, in: focusOrder)
     }
 
     // MARK: Actions
@@ -411,54 +254,6 @@ struct NewHealthRecordView: View {
             dismiss()
         } catch {
             saveErrorMessage = error.localizedDescription
-        }
-    }
-}
-
-private enum InputField: Hashable {
-    case hospital
-    case department
-    case conclusion
-    case reason
-    case results
-    case advice
-    case medications
-    case doctor
-    case recordNumber
-    case notes
-    case ocr
-}
-
-private struct AttachmentDraftThumbnail: View {
-    let attachment: AttachmentDraft
-    let onDelete: () -> Void
-
-    var body: some View {
-        ZStack(alignment: .topTrailing) {
-            Group {
-                if let image = UIImage(data: attachment.data) {
-                    Image(uiImage: image)
-                        .resizable()
-                        .scaledToFill()
-                } else {
-                    Image(systemName: "doc")
-                        .font(.title)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            .frame(width: 88, height: 104)
-            .background(.quaternary)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-
-            Button(action: onDelete) {
-                Image(systemName: "xmark.circle.fill")
-                    .symbolRenderingMode(.palette)
-                    .foregroundStyle(.white, .black.opacity(0.55))
-                    .font(.title3)
-            }
-            .buttonStyle(.plain)
-            .padding(5)
-            .accessibilityLabel("移除\(attachment.displayName)")
         }
     }
 }
