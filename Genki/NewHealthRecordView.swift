@@ -393,7 +393,6 @@ struct NewHealthRecordView: View {
                 if !text.isEmpty {
                     rawOCRText = rawOCRText.isEmpty ? text : rawOCRText + "\n\n" + text
                     apply(HealthFieldExtractor.extract(from: text))
-                    inferCategory(from: text)
                 }
             } catch {
                 errorMessage = error.localizedDescription
@@ -415,21 +414,14 @@ struct NewHealthRecordView: View {
         fillIfEmpty(&examinationResults, with: fields.examinationResults)
         fillIfEmpty(&medications, with: fields.medications)
         fillIfEmpty(&doctorAdvice, with: fields.doctorAdvice)
+        if category == HealthRecordCategory.visit.rawValue, let suggested = fields.category {
+            category = suggested.rawValue
+        }
     }
 
     private func fillIfEmpty(_ target: inout String, with value: String?) {
         guard target.trimmed.isEmpty else { return }
         target = value ?? target
-    }
-
-    private func inferCategory(from text: String) {
-        guard category == HealthRecordCategory.visit.rawValue else { return }
-
-        if text.contains("体检") {
-            category = HealthRecordCategory.checkup.rawValue
-        } else if text.contains("检验报告") || text.contains("检查报告") {
-            category = HealthRecordCategory.test.rawValue
-        }
     }
 
     private func save() {
