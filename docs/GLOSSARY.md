@@ -19,6 +19,8 @@ Use these terms in code, docs and UI copy. If you introduce a new domain term, a
 | Source | — | `AttachmentSource` | How bytes arrived: `scanner`, `photoLibrary`, `fileImport`, `demo` |
 | Raw OCR text | OCR 原文 | `rawOCRText` | Unedited Vision output, kept for search and audit |
 | Extracted fields | — | `ExtractedHealthFields` | Suggestions parsed from OCR text. They only fill empty fields |
+| Record draft | — | `RecordDraft` (planned, T-039) | The form's unsaved values. Nothing is stored until Save |
+| Field origin | — | `FieldOrigin` (planned) | Where a form value came from: `defaultValue`, `suggestedByOCR` or `userOwned`. OCR may write only to `defaultValue` |
 | Demo record | 演示 | `isDemo` | Fictional seed data, DEBUG builds only |
 | Transfer record | — | `HealthRecordTransferRecord` | A versioned, `Sendable` snapshot detached from SwiftData. It's the unit of a backup (D-022) |
 | Backup | 备份 (proposed) | `manifest.json`, `records.json`, `assets/` | A full export of every record and original file, encrypted by default (D-022, D-023) |

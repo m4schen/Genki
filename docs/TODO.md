@@ -2,7 +2,7 @@
 
 The single backlog for humans and agents (D-011), ordered by milestone (D-019). Work the current milestone before you start a later one. Quality-gate items (T-005, T-006) can be picked up any time during M1–M2.
 
-**Markers:** `[ ]` open · `[~]` in progress (add `@who`) · `[x]` done (add the commit hash) · `[!]` blocked (add the reason)
+**Markers:** `[ ]` open · `[~]` in progress (add `@who`) · `[x]` done (add the commit hash or PR) · `[!]` blocked (add the reason)
 
 **Rules:**
 - Claim an item before you start. Set it to `[~] @name`.
@@ -36,6 +36,10 @@ The single backlog for humans and agents (D-011), ordered by milestone (D-019). 
   - Done when: a failed save shows an alert and keeps the form open.
 - [ ] **T-008** Confirm before deleting a record · P0 · F1.4
   - Done when: swipe-delete asks for confirmation; a test or simulator run proves a cancelled delete keeps the record.
+- [ ] **T-039** Extract `RecordDraft` from `NewHealthRecordView`: field values, a `FieldOrigin` per field, OCR apply, and building a `HealthRecord` · P1 · F1.3, F3.3 · UC1, UC5
+  - Done when: the form view holds one `RecordDraft` instead of 19 `@State` fields; draft logic has unit tests; behavior is unchanged (Refactoring playbook). See ARCHITECTURE.md §4.
+- [ ] **T-038** Bug: OCR overwrites a date or category the patient chose · P0 · F3.3 · UC1 step 5a · D-014
+  - Done when: tests prove that a date the patient picked, or a category the patient chose, survives OCR, and that untouched defaults can still be filled. Builds on T-039.
 - [ ] **T-021** Add `com.apple.developer.default-data-protection = NSFileProtectionComplete` · P1 · F6.2 · D-012
   - Done when: an entitlements file is checked in, and a check on a device shows the store file's `FileProtectionType` is `.complete`.
 - [ ] **T-025** Delete the sync/Health scaffold and keep the transfer types · P1 · F7.1, F7.2 · D-018
@@ -101,8 +105,12 @@ The single backlog for humans and agents (D-011), ordered by milestone (D-019). 
 
 ## Needs decision
 
-None open. Add questions here as `Q-n`, with the feature ID.
+Add questions here as `Q-n`, with the feature ID. Settle these before T-014 starts.
+
+- [ ] **Q-1** Restore finds a record with the same `recordID` but different content: which one wins? Recommended: keep whichever has the newer `updatedAt`, and never delete device records that aren't in the backup · F6.4 · UC8 4a
+- [ ] **Q-2** Restore finds a missing or corrupt asset: skip that record, or restore nothing? Recommended: restore nothing, and name the affected records · F6.4 · UC8 3b
 
 ## Done
 
 - [x] **T-000** Add AGENTS.md, CLAUDE.md, the feature map, TODO, decisions and glossary; record the decisions from the grill session (D-003 … D-025) · 0793f19
+- [x] **T-040** Add USE_CASES.md, ARCHITECTURE.md (Mermaid diagrams) and the docs index for human readers · c8b56da
