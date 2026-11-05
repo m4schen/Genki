@@ -157,14 +157,18 @@ stateDiagram-v2
   DefaultValue --> UserOwned: patient types or picks
   SuggestedByOCR --> UserOwned: patient edits or confirms
   SuggestedByOCR --> DefaultValue: patient clears
+  UserOwned --> DefaultValue: patient clears
   UserOwned --> UserOwned: OCR finds a value, ignored
 ```
 
-The rule is: **OCR may write only to a field in the `DefaultValue` state.** In Swift, this becomes an enum stored next to each value in `RecordDraft` (T-039). Then "OCR overwrote the patient's date" can't happen without the code saying so on purpose.
+The rule is: **OCR may write only to a field in the `DefaultValue` state.** This is implemented in `Genki/RecordDraft.swift`. Each form value is a `DraftField<Value>` that holds its value and a `FieldOrigin`. The value can change only through two methods, so the origin can't fall out of date:
 
 ```swift
-enum FieldOrigin { case defaultValue, suggestedByOCR, userOwned }
+mutating func setByUser(_ newValue: Value)  // → userOwned (or defaultValue if blank)
+mutating func suggest(_ suggestion: Value?)  // writes only while origin == .defaultValue
 ```
+
+The form binds every field through `setByUser`, and OCR goes through `suggest`. `RecordDraftTests` covers each transition. A hand mutation test (removing the origin check) made 4 of those tests fail.
 
 ## When to add a diagram
 

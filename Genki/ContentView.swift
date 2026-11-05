@@ -230,12 +230,6 @@ private struct HealthRecordRow: View {
     }
 }
 
-private extension String {
-    var trimmed: String {
-        trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-}
-
 #Preview {
     ContentView()
         .modelContainer(

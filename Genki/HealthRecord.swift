@@ -117,7 +117,7 @@ final class RecordAttachment {
     }
 }
 
-nonisolated enum HealthRecordCategory: String, CaseIterable, Identifiable {
+nonisolated enum HealthRecordCategory: String, CaseIterable, Identifiable, Sendable {
     case visit
     case checkup
     case test
