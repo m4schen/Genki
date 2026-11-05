@@ -105,4 +105,4 @@ None open. Add questions here as `Q-n`, with the feature ID.
 
 ## Done
 
-- [x] **T-000** Add AGENTS.md, CLAUDE.md, the feature map, TODO, decisions and glossary; record the decisions from the grill session (D-003 … D-025) · (uncommitted)
+- [x] **T-000** Add AGENTS.md, CLAUDE.md, the feature map, TODO, decisions and glossary; record the decisions from the grill session (D-003 … D-025) · 0793f19
