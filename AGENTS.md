@@ -45,7 +45,7 @@ The two stacks share principle names. ub-mode is the reduced set. This repo does
 | Playbook | Use when | Steps |
 |---|---|---|
 | Session pickup | Starting a session | Read `docs/TODO.md` (the `[~]` items first) → `git log --oneline -15` → `git status` → continue the oldest `[~]` you own |
-| Feature | New user-visible behavior | Read the code path (*how*) → design the boundary first if the change crosses files/modules (*architect*) → failing test → smallest change → Make it Right → prove in the simulator → update `FEATURE_MAP.md` + `TODO.md` |
+| Feature | New user-visible behavior | Find its use case in `docs/USE_CASES.md` → read the code path (*how*) → design the boundary first if the change crosses files/modules (*architect*) → failing test → smallest change → Make it Right → prove in the simulator → update `FEATURE_MAP.md` + `TODO.md` |
 | Bug fix | Something is wrong | Reproduce with a failing test → find the first place it went wrong → fix there → Make it Right → prove |
 | Refactoring | Same behavior, better structure | Pin the behavior with tests → change the structure → prove the behavior is unchanged → delete what became dead |
 | Investigation | A question, with no code change | Stay read-only. Report findings labeled **measured** / **inferred** / **guess**, with file:line evidence |
@@ -106,6 +106,7 @@ The two stacks share principle names. ub-mode is the reduced set. This repo does
 - [ ] UI changes were run in the simulator on iPhone and on iPad, with a screenshot checked. If the layout changed, also check the largest Dynamic Type size and dark mode.
 - [ ] CI is green on the PR (once T-020 lands).
 - [ ] `docs/TODO.md` item set to `[x]` with the commit hash. `docs/FEATURE_MAP.md` status updated. A `docs/DECISIONS.md` entry exists if a decision was made.
+- [ ] If a use-case flow or a diagrammed design changed, `docs/USE_CASES.md` or `docs/ARCHITECTURE.md` is updated in the same PR.
 - [ ] The final report cites only the principles that actually shaped a decision, and labels claims measured / inferred / guess.
 
 ## Commands
@@ -165,6 +166,9 @@ The document scanner needs a real device camera. Photo import and manual entry w
 
 | File | Purpose | Who updates it |
 |---|---|---|
+| `docs/README.md` | The reading order for humans | Whoever adds a doc |
+| `docs/USE_CASES.md` | Actors and use cases (the requirements model). Alternate flows become tests | Whoever changes a use case's behavior |
+| `docs/ARCHITECTURE.md` | Layers, domain model, capture flow, and the field-origin state machine, as Mermaid diagrams | Whoever changes a diagrammed design |
 | `docs/FEATURE_MAP.md` | What the app does, by area, with status, v1 scope and code pointers | Whoever changes a feature's status |
 | `docs/TODO.md` | The single backlog, ordered by milestone (D-011). Claim items with `[~]`, finish them with `[x]` and the commit hash | Everyone, every task |
 | `docs/DECISIONS.md` | Decisions with reasons. Append-only; supersede an entry instead of editing it | Whoever makes or records a decision |

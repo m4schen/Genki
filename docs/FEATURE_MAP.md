@@ -34,7 +34,7 @@ Last verified against code: 2026-11-05, commit `5ff575c`.
 |---|---|---|---|---|---|
 | F3.1 | On-device OCR (zh-Hans, zh-Hant, en-US) | shipped | yes | `OCRService.recognize` | Vision `.accurate`, runs detached |
 | F3.2 | Extract fields from OCR text | partial | yes | `HealthFieldExtractor` | Chinese regex labels only, untested; first TDD target (T-002) |
-| F3.3 | Fill only empty fields | shipped | yes | `NewHealthRecordView.fillIfEmpty` | Contract: never overwrite user input (non-negotiable 6) |
+| F3.3 | Fill only empty fields | partial | yes | `NewHealthRecordView.fillIfEmpty` | Text fields are correct, but the date and the category get overwritten (bug T-038; fix design in ARCHITECTURE.md §4) |
 | F3.4 | Guess category from text | shipped | yes | `NewHealthRecordView.inferCategory` | Keyword match |
 | F3.5 | Mark OCR-filled fields "from OCR" | planned | yes | — | The marker stays until the user edits or confirms the field (D-014, T-022) |
 
