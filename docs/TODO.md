@@ -113,4 +113,4 @@ Add questions here as `Q-n`, with the feature ID. Settle these before T-014 star
 ## Done
 
 - [x] **T-000** Add AGENTS.md, CLAUDE.md, the feature map, TODO, decisions and glossary; record the decisions from the grill session (D-003 … D-025) · 0793f19
-- [x] **T-040** Add USE_CASES.md, ARCHITECTURE.md (Mermaid diagrams) and the docs index for human readers · PR #1
+- [x] **T-040** Add USE_CASES.md, ARCHITECTURE.md (Mermaid diagrams) and the docs index for human readers · c8b56da
