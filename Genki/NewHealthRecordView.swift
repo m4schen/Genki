@@ -80,6 +80,10 @@ struct NewHealthRecordView: View {
                     },
                     onCancel: {
                         isShowingScanner = false
+                    },
+                    onFailure: { error in
+                        isShowingScanner = false
+                        errorMessage = error.localizedDescription
                     }
                 )
                 .ignoresSafeArea()

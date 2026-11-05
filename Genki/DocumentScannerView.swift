@@ -1,9 +1,12 @@
 import SwiftUI
 import VisionKit
 
+/// Adapter from VisionKit's document camera to SwiftUI. It has no business
+/// logic: it reports pages, a cancel, or a failure.
 struct DocumentScannerView: UIViewControllerRepresentable {
     let onComplete: ([Data]) -> Void
     let onCancel: () -> Void
+    let onFailure: (any Error) -> Void
 
     func makeCoordinator() -> Coordinator {
         Coordinator(parent: self)
@@ -45,9 +48,9 @@ struct DocumentScannerView: UIViewControllerRepresentable {
 
         func documentCameraViewController(
             _ controller: VNDocumentCameraViewController,
-            didFailWithError error: Error
+            didFailWithError error: any Error
         ) {
-            parent.onCancel()
+            parent.onFailure(error)
         }
     }
 }

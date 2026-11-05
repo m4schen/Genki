@@ -184,10 +184,6 @@ extension HealthRecord {
 }
 
 extension RecordAttachment {
-    var data: Data {
-        imageData
-    }
-
     var kindValue: AttachmentKind {
         AttachmentKind(rawValue: kind) ?? .other
     }

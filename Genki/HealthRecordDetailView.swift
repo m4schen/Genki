@@ -169,7 +169,7 @@ private struct AttachmentThumbnail: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 7) {
             Group {
-                if let image = UIImage(data: attachment.data) {
+                if let image = UIImage(data: attachment.imageData) {
                     Image(uiImage: image)
                         .resizable()
                         .scaledToFill()
@@ -203,7 +203,7 @@ private struct AttachmentViewer: View {
     var body: some View {
         NavigationStack {
             Group {
-                if let image = UIImage(data: attachment.data) {
+                if let image = UIImage(data: attachment.imageData) {
                     ScrollView([.horizontal, .vertical]) {
                         Image(uiImage: image)
                             .resizable()
