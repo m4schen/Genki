@@ -13,14 +13,6 @@ The single backlog for humans and agents (D-011), ordered by milestone (D-019). 
 
 ## M0 Foundation
 
-- [ ] **T-001** Add a `GenkiTests` unit test target using Swift Testing · P0 · F8.4
-  - Done when: `xcodebuild … test` runs at least one test on the iPhone 17 simulator, and AGENTS.md → Commands says so.
-- [ ] **T-002** TDD `HealthFieldExtractor` with fictional report text: every field, full-width colons, the three date formats, no match → nil · P0 · F3.2
-  - Done when: each regex branch has a behavior test; one test per real OCR sample shape.
-- [ ] **T-019** Switch to Swift 6 language mode · P1 · F8.7 · D-016
-  - Done when: `SWIFT_VERSION = 6.0`; the two errors at `HealthRecord.swift:182` and `:196` are fixed at the cause, not silenced; build and tests pass.
-- [ ] **T-003** Add `.swiftlint.yml` and make `swiftlint lint --strict` pass · P1 · F8.5
-  - Done when: zero violations; the config is checked in; the rules are justified in DECISIONS.md.
 - [ ] **T-027** Add the Apache-2.0 `LICENSE` and a license line in README · P1 · F8.9 · D-017
   - Done when: GitHub shows the repo as Apache-2.0.
 - [ ] **T-020** GitHub Actions CI: build, test and lint on every PR, on `macos-26` · P1 · F8.6 · D-015
@@ -30,24 +22,19 @@ The single backlog for humans and agents (D-011), ordered by milestone (D-019). 
 
 ## M1 Data safety
 
-- [ ] **T-007** Add `VersionedSchema` V1 and a `SchemaMigrationPlan`; replace `fatalError` in `GenkiApp` with a recoverable error screen · P0 · F6.5 · D-007
-  - Done when: a test opens a V1 store through the plan; launching with a corrupt store shows an error screen instead of crashing.
-- [ ] **T-009** Make save explicit: `try modelContext.save()` and show an error when it fails · P0 · F1.6
-  - Done when: a failed save shows an alert and keeps the form open.
-- [ ] **T-008** Confirm before deleting a record · P0 · F1.4
-  - Done when: swipe-delete asks for confirmation; a test or simulator run proves a cancelled delete keeps the record.
-- [ ] **T-039** Extract `RecordDraft` from `NewHealthRecordView`: field values, a `FieldOrigin` per field, OCR apply, and building a `HealthRecord` · P1 · F1.3, F3.3 · UC1, UC5
-  - Done when: the form view holds one `RecordDraft` instead of 19 `@State` fields; draft logic has unit tests; behavior is unchanged (Refactoring playbook). See ARCHITECTURE.md §4.
-- [ ] **T-038** Bug: OCR overwrites a date or category the patient chose · P0 · F3.3 · UC1 step 5a · D-014
-  - Done when: tests prove that a date the patient picked, or a category the patient chose, survives OCR, and that untouched defaults can still be filled. Builds on T-039.
+- [ ] **T-007** Add `VersionedSchema` V1 and a `SchemaMigrationPlan` · P0 · F6.5 · D-007
+  - Done when: a test opens a V1 store through the plan. (The recoverable error screen already shipped as T-041.)
 - [ ] **T-021** Add `com.apple.developer.default-data-protection = NSFileProtectionComplete` · P1 · F6.2 · D-012
   - Done when: an entitlements file is checked in, and a check on a device shows the store file's `FileProtectionType` is `.complete`.
-- [ ] **T-025** Delete the sync/Health scaffold and keep the transfer types · P1 · F7.1, F7.2 · D-018
-  - Done when: `HealthDataIntegration.swift:3-28, 317-523`, the change-set/deletion types, `SystemHealthDataTypeIdentifier` and `HealthDataIntegrationEnvironment.swift` are gone; the kept types have Codable round-trip tests; README no longer mentions reserved sync interfaces.
 - [ ] **T-014** Backup export and restore · P0 · F6.4 · D-022, D-023
   - Done when: export, then delete the app, then restore round-trips the demo records with every attachment hash matching (tested); restoring twice creates no duplicates; the encrypted path decrypts with the right password and fails clearly with a wrong one; plain export shows the warning.
 - [ ] **T-005** Set up the duplication gate (PMD CPD, Swift, 50 tokens) · P2 · F8.5
-  - Done when: one command reports clones. First fix: the duplicate `String.trimmed` in `ContentView.swift:234` and `NewHealthRecordView.swift:530`.
+  - Done when: one command reports clones and the repo has none above the threshold. (The duplicate `String.trimmed` it would have caught was already merged into `String+Trimmed.swift`, 5c1231f.)
+- [ ] **T-042** Improve OCR field extraction, found while pinning it (T-002) · P2 · F3.2 · UC1
+  - (a) A label alone on its line takes the next line as its value, even when that line is another label (pinned in `readsValueFromNextLine`).
+  - (b) Full-width digits in dates ("２０２６年３月５日") aren't parsed.
+  - (c) Inferred, untested: "医生建议：…" may also be read as a doctor name.
+  - Done when: each case has a test with the behavior the product wants.
 - [ ] **T-006** Set up the mutation gate (`muter`) against `GenkiTests` · P2 · F8.5
   - Done when: `muter` runs on `OCRService.swift` and survivors are listed or killed.
 
@@ -113,4 +100,24 @@ Add questions here as `Q-n`, with the feature ID. Settle these before T-014 star
 ## Done
 
 - [x] **T-000** Add AGENTS.md, CLAUDE.md, the feature map, TODO, decisions and glossary; record the decisions from the grill session (D-003 … D-025) · 0793f19
+- [x] **T-001** Add a `GenkiTests` unit test target using Swift Testing · P0 · F8.4 · 308a015
+  - Done when: `xcodebuild … test` runs at least one test on the iPhone 17 simulator, and AGENTS.md → Commands says so.
+- [x] **T-019** Switch to Swift 6 language mode · P1 · F8.7 · D-016 · 57503f9
+  - Done when: `SWIFT_VERSION = 6.0`; the two errors at `HealthRecord.swift:182` and `:196` are fixed at the cause, not silenced; build and tests pass.
+- [x] **T-002** TDD `HealthFieldExtractor` with fictional report text: every field, full-width colons, the three date formats, no match → nil · P0 · F3.2 · fa4f6f6
+  - Done when: each regex branch has a behavior test; one test per real OCR sample shape.
+- [x] **T-003** Add `.swiftlint.yml` and make `swiftlint lint --strict` pass · P1 · F8.5 · 6f44fcd
+  - Done when: zero violations; the config is checked in; the rules are justified in DECISIONS.md.
+- [x] **T-009** Make save explicit: `try modelContext.save()` and show an error when it fails · P0 · F1.6 · 5c1231f
+  - Done when: a failed save shows an alert and keeps the form open.
+- [x] **T-039** Extract `RecordDraft` from `NewHealthRecordView`: field values, a `FieldOrigin` per field, OCR apply, and building a `HealthRecord` · P1 · F1.3, F3.3 · UC1, UC5 · 5c1231f
+  - Done when: the form view holds one `RecordDraft` instead of 19 `@State` fields; draft logic has unit tests; behavior is unchanged (Refactoring playbook). See ARCHITECTURE.md §4.
+- [x] **T-038** Bug: OCR overwrites a date or category the patient chose · P0 · F3.3 · UC1 step 5a · D-014 · 5c1231f
+  - Done when: tests prove that a date the patient picked, or a category the patient chose, survives OCR, and that untouched defaults can still be filled. Builds on T-039.
+- [x] **T-008** Confirm before deleting a record · P0 · F1.4 · c2ec4b2, 3621703
+  - Done when: swipe-delete asks for confirmation; a test or simulator run proves a cancelled delete keeps the record.
+- [x] **T-025** Delete the sync/Health scaffold and keep the transfer types · P1 · F7.1, F7.2 · D-018 · dc4b287
+  - Done when: `HealthDataIntegration.swift:3-28, 317-523`, the change-set/deletion types, `SystemHealthDataTypeIdentifier` and `HealthDataIntegrationEnvironment.swift` are gone; the kept types have Codable round-trip tests; README no longer mentions reserved sync interfaces.
+- [x] **T-041** Replace `fatalError` at startup with a recoverable "store unavailable" screen (`GenkiStore`, `StoreUnavailableView`) · P0 · F6.5 · D-007 · dc4b287
+  - Done when: a store that can't be opened shows a screen saying the data was not deleted, instead of crashing.
 - [x] **T-040** Add USE_CASES.md, ARCHITECTURE.md (Mermaid diagrams) and the docs index for human readers · c8b56da

@@ -14,35 +14,36 @@ Every type plays one of three roles (Jacobson's analysis model):
 flowchart LR
   subgraph Boundary
     CV[ContentView]
-    NV[NewHealthRecordView]
+    NV["NewHealthRecordView<br/>+ RecordFormSections"]
     DV[HealthRecordDetailView]
     SV[DocumentScannerView]
     OS[OCRService]
   end
   subgraph Control
-    SG["search + month grouping<br/>(inside ContentView)"]
-    SA["save, apply, inferCategory<br/>(inside NewHealthRecordView)"]
+    TL[RecordTimeline]
+    RD["RecordDraft<br/>(DraftField, FieldOrigin)"]
     FX[HealthFieldExtractor]
+    FF[RecordFormField]
     DS[DemoDataSeeder]
   end
   subgraph Entity
     HR[HealthRecord]
     RA[RecordAttachment]
+    TR[HealthRecordTransfer types]
   end
-  CV --> SG
+  CV --> TL
   NV --> SV
   NV --> OS
-  NV --> SA
-  SA --> FX
-  SA --> HR
+  NV --> RD
+  NV --> FF
+  RD --> FX
+  RD --> HR
   DS --> HR
   DV --> HR
   HR --> RA
-  classDef trapped stroke-dasharray: 5 5
-  class SG,SA trapped
 ```
 
-Two dashed pieces of control logic still live inside views, where no test can reach them. `RecordDraft` (T-039) moves the form's logic out. Search and grouping move out the next time someone touches them.
+Every piece of control logic is now its own plain type, with unit tests in `GenkiTests/`. Views only lay out and forward user actions. `HealthRecordTransfer` holds versioned types that aren't stored yet; they become the backup format (T-014).
 
 **Where new code goes**
 
@@ -119,7 +120,7 @@ How to read the diagram:
 
 ## 3. Capture flow (UC1)
 
-This is what happens today when the patient scans a report.
+This is what happens when the patient scans a report.
 
 ```mermaid
 sequenceDiagram
@@ -127,24 +128,27 @@ sequenceDiagram
   participant F as NewHealthRecordView
   participant S as DocumentScannerView
   participant O as OCRService
+  participant D as RecordDraft
   participant X as HealthFieldExtractor
   participant DB as ModelContext
   P->>F: Tap Add, then Scan
   F->>S: Present the scanner
-  S-->>F: Page images (JPEG)
-  F->>F: Keep images as AttachmentDraft
+  S-->>F: Page images, cancel, or failure
+  F->>D: addScannedPage(data)
   F->>O: recognize(imageData)
   Note over O: Vision runs on the device, off the main thread
   O-->>F: Raw OCR text
-  F->>X: extract(from: text)
-  X-->>F: ExtractedHealthFields
-  F->>F: Fill empty fields (date always replaced: bug T-038)
+  F->>D: applyRecognizedText(text)
+  D->>X: extract(from: text)
+  X-->>D: ExtractedHealthFields
+  D->>D: suggest() fills only fields still at their default
   P->>F: Review, correct, tap Save
-  F->>DB: Insert HealthRecord and RecordAttachments
-  Note over F,DB: No explicit save() yet, so a failed write is invisible (T-009)
+  F->>D: save(in: context)
+  D->>DB: Insert record + attachments, then save()
+  Note over D,DB: On failure the inserts are removed and the form stays open
 ```
 
-Nothing touches the database until Save. Cancel just throws away the drafts.
+Nothing touches the database until Save. Cancel just throws away the draft.
 
 ## 4. Field origin (design for T-038 and T-022)
 

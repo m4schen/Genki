@@ -172,3 +172,9 @@ Template:
 - Decision: An agent builds 2–3 distinct clickable mockups of the list, record and add-record screens, and the human picks one. The choice becomes `docs/DESIGN.md` plus `Genki/DesignSystem/`. Each screen is then rebuilt with the Visual parity playbook.
 - Why: Choosing between real options is faster than describing a look from scratch (Exhaust the Design Space for a decision that's hard to undo).
 - Consequences: The design-system folder means each style choice lives in one place.
+
+## D-026 SwiftLint configuration
+- Date: 2026-11-06 · Status: accepted
+- Decision: `.swiftlint.yml` keeps SwiftLint's defaults and changes one rule: `trailing_comma: mandatory_comma: true`. It lints `Genki/` and `GenkiTests/`, and the gate is `swiftlint lint --strict`. No `swiftlint:disable` comments.
+- Why: The codebase already ends multi-line lists with a comma, as Airbnb's Swift style guide (`#trailing-commas`) requires. The defaults' length limits pointed at real smells, a 533-line form and an oversized struct, which the refactor fixed instead of suppressing.
+- Consequences: Under `--strict`, warnings fail the gate too. For example, a type body over 250 lines must be split.

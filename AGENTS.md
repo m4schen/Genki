@@ -10,7 +10,7 @@ Genki is a personal health archive for iPhone and iPad. The patient owns it. It 
 - **Current phase:** making v1 work, milestones M0–M3. Next, M4 redesigns the UI and M5 releases. The scope and order are in `docs/TODO.md` (D-006, D-019).
 - **Stack:** SwiftUI, SwiftData, Vision (on-device OCR), VisionKit (document scanner). No third-party dependencies.
 - **Targets:** iOS/iPadOS 26.5+. iPhone and iPad are both first-class (D-008). Built with Xcode 26.5+ (verified on Xcode 27.2).
-- **Build settings that matter:** `SWIFT_VERSION = 5.0` (moving to 6 in T-019, D-016), `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`, `SWIFT_APPROACHABLE_CONCURRENCY = YES`. The project uses file-system-synchronized groups, so new files under `Genki/` are picked up without editing `project.pbxproj`.
+- **Build settings that matter:** `SWIFT_VERSION = 6.0` (D-016), `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`, `SWIFT_APPROACHABLE_CONCURRENCY = YES`. The project uses file-system-synchronized groups, so new files under `Genki/` are picked up without editing `project.pbxproj`.
 - **Languages:** docs, code, comments and commits are in English. The UI's source language is Simplified Chinese, and English is the second UI language (D-009).
 
 ## Non-negotiables
@@ -22,7 +22,7 @@ Stop and ask the human before you cross any of these lines. A "yes" goes into `d
 3. **Do not lose user data.** Existing stores hold real records, and they must survive every update (D-007). Every SwiftData schema change ships with a migration and a test that opens a store from the previous version. Destructive actions need confirmation or undo. A backup restore is idempotent (D-022).
 4. **Never commit real patient data.** That covers tests, fixtures, screenshots, issues, commit messages, and logs. Demo data is fictional and sets `isDemo = true`.
 5. **Do not log health content.** Never `print` field values. If you must log with `os.Logger`, mark the values `privacy: .private`.
-6. **OCR is a suggestion.** Extracted values fill only empty fields (`fillIfEmpty`) and never overwrite what the user typed. A field OCR filled shows a "from OCR" marker until the user edits or confirms it (D-014). The original image is always kept.
+6. **OCR is a suggestion.** Extracted values reach the form only through `DraftField.suggest`, which writes only to fields still at their default value, so OCR never overwrites what the user typed or picked (`Genki/RecordDraft.swift`). A field OCR filled shows a "from OCR" marker until the user edits or confirms it (D-014). The original image is always kept.
 7. **No medical interpretation.** The app does not judge results as normal or abnormal, diagnose, or recommend treatment.
 
 ## How to work: pstack routes, ub-mode executes
@@ -82,8 +82,8 @@ The two stacks share principle names. ub-mode is the reduced set. This repo does
   | Gate | Genki tool | Threshold | Blocking |
   |---|---|---|---|
   | Build | `xcodebuild build` | no new warnings | now |
-  | Tests | `xcodebuild test` | all pass | once T-001 lands |
-  | Lint | `swiftlint lint --strict` | zero violations | once T-003 lands |
+  | Tests | `xcodebuild test` | all pass | now |
+  | Lint | `swiftlint lint --strict` | zero violations (D-026) | now |
   | Crapper | `scripts/crap.sh`: `lizard` complexity + `xccov` coverage | CRAP < 10 per function, non-View code | once T-004 lands |
   | Dryer | PMD CPD (`--language swift`) | no clone ≥ 50 tokens in `Genki/` | once T-005 lands |
   | Mutator | `muter` | no surviving mutants in changed non-View files | once T-006 lands |
@@ -118,11 +118,11 @@ If `xcodebuild` reports "requires Xcode, but active developer directory … is a
 xcodebuild -project Genki.xcodeproj -scheme Genki \
   -destination 'platform=iOS Simulator,name=iPhone 17' build | xcbeautify
 
-# Test (no test target yet, see T-001)
+# Test: GenkiTests via the shared Genki scheme (verified: 33 tests on iPhone 17 and iPad Pro 11")
 xcodebuild -project Genki.xcodeproj -scheme Genki \
   -destination 'platform=iOS Simulator,name=iPhone 17' test | xcbeautify
 
-# Lint (no .swiftlint.yml yet, see T-003)
+# Lint (config: .swiftlint.yml, verified: 0 violations)
 swiftlint lint --strict
 ```
 
@@ -139,17 +139,24 @@ The document scanner needs a real device camera. Photo import and manual entry w
 
 | File | Owns |
 |---|---|
-| `Genki/GenkiApp.swift` | `ModelContainer` setup (CloudKit off), environment injection |
+| `Genki/GenkiApp.swift` | App entry: opens the store, or shows `StoreUnavailableView` |
+| `Genki/GenkiStore.swift` | The one place the schema and `cloudKitDatabase: .none` live; `StoreUnavailableView` |
 | `Genki/HealthRecord.swift` | SwiftData models `HealthRecord`, `RecordAttachment`; `HealthRecordCategory`, `AttachmentKind`, `AttachmentSource` |
-| `Genki/ContentView.swift` | Record list, month grouping, search, swipe-to-delete |
-| `Genki/NewHealthRecordView.swift` | Create form, scanner/photo import, OCR trigger, save |
+| `Genki/HealthRecordTransfer.swift` | Versioned, store-independent transfer types: the future backup format |
+| `Genki/ContentView.swift` | Record list, search box, swipe-to-delete with confirmation |
+| `Genki/RecordTimeline.swift` | Search filter and month grouping (pure, tested); `searchableFields` |
+| `Genki/NewHealthRecordView.swift` | Add-record form: attachments, scanner/photo import, OCR trigger, save |
+| `Genki/RecordFormSections.swift` | The form's text sections; `Binding<RecordDraft>.field(_:)` |
+| `Genki/RecordDraft.swift` | `RecordDraft`, `DraftField`, `FieldOrigin`, `AttachmentDraft`: every form rule (tested) |
+| `Genki/RecordFormField.swift` | Keyboard focus order (pure, tested) |
+| `Genki/AttachmentDraftThumbnail.swift` | Thumbnail of an unsaved attachment |
 | `Genki/HealthRecordDetailView.swift` | Read-only detail, attachment viewer |
-| `Genki/OCRService.swift` | Vision OCR, `HealthFieldExtractor` (pure regex extraction) |
-| `Genki/DocumentScannerView.swift` | VisionKit scanner wrapper |
-| `Genki/HealthDataIntegration.swift` | Transfer types, lines 29–316 (kept, they become the backup format), plus a disabled sync/Health scaffold (being removed, T-025) |
-| `Genki/HealthDataIntegrationEnvironment.swift` | Environment key for the scaffold (being removed, T-025) |
+| `Genki/OCRService.swift` | Vision OCR; `HealthFieldExtractor` (pure, tested) and `FieldPattern` |
+| `Genki/DocumentScannerView.swift` | VisionKit scanner adapter (pages, cancel, failure) |
 | `Genki/DemoDataSeeder.swift` | DEBUG-only fictional records and AI-generated demo images |
 | `Genki/HealthRecordStyle.swift` | SF Symbols and tints per category/kind |
+| `Genki/String+Trimmed.swift`, `Genki/Binding+IsPresenting.swift` | Small shared helpers |
+| `GenkiTests/` | Swift Testing unit tests; `TestStore` gives each test an in-memory store |
 | `Genki/DesignSystem/` | Starting in M4: color, type and spacing tokens, and shared components (T-029) |
 
 ## Conventions
@@ -158,7 +165,7 @@ The document scanner needs a real device camera. Photo import and manual entry w
 - **Strings:** user-facing text goes through `LocalizedStringResource`, `String(localized:)` or a SwiftUI string literal, so the String Catalog picks it up (T-011). Simplified Chinese is the source language. Do not build UI text by concatenating strings.
 - **Styling:** use system styling until M4. After M4, use only `Genki/DesignSystem/` (D-024).
 - **Accessibility:** every control has a label. Decorative images use `.accessibilityHidden(true)`. Rows combine their children (`.accessibilityElement(children: .combine)`).
-- **Comments:** write one only for a non-obvious constraint that comes from outside the code, such as an OS limitation, a privacy rule, or a data-format promise. The doc comments in `HealthDataIntegration.swift` are the model.
+- **Comments:** write one only for a non-obvious constraint that comes from outside the code, such as an OS limitation, a privacy rule, or a data-format promise. The doc comments in `HealthRecordTransfer.swift` and `RecordDraft.swift` are the model.
 - **Dependencies:** none. Adding a Swift package needs a `DECISIONS.md` entry.
 - **Previews:** use in-memory containers with fictional data only.
 
