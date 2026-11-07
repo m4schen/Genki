@@ -13,12 +13,8 @@ The single backlog for humans and agents (D-011), ordered by milestone (D-019). 
 
 ## M0 Foundation
 
-- [ ] **T-027** Add the Apache-2.0 `LICENSE` and a license line in README · P1 · F8.9 · D-017
-  - Done when: GitHub shows the repo as Apache-2.0.
-- [ ] **T-020** GitHub Actions CI: build, test and lint on every PR, on `macos-26` · P1 · F8.6 · D-015
+- [~] @claude **T-020** GitHub Actions CI: build, test and lint on every PR, on `macos-26` · P1 · F8.6 · D-015 · workflow in 52d6a7f, waiting on its first PR run
   - Done when: a PR shows a green check with all three steps; a deliberately failing test turns it red.
-- [ ] **T-004** Build `scripts/crap.sh`, which joins `lizard` per-function complexity with `xccov` coverage and fails on CRAP ≥ 10 · P1 · F8.5 · D-004
-  - Done when: it runs on the repo, prints the worst 10 functions, and exits non-zero above the threshold.
 
 ## M1 Data safety
 
@@ -120,4 +116,8 @@ Add questions here as `Q-n`, with the feature ID. Settle these before T-014 star
   - Done when: `HealthDataIntegration.swift:3-28, 317-523`, the change-set/deletion types, `SystemHealthDataTypeIdentifier` and `HealthDataIntegrationEnvironment.swift` are gone; the kept types have Codable round-trip tests; README no longer mentions reserved sync interfaces.
 - [x] **T-041** Replace `fatalError` at startup with a recoverable "store unavailable" screen (`GenkiStore`, `StoreUnavailableView`) · P0 · F6.5 · D-007 · dc4b287
   - Done when: a store that can't be opened shows a screen saying the data was not deleted, instead of crashing.
+- [x] **T-027** Add the Apache-2.0 `LICENSE` and a license line in README · P1 · F8.9 · D-017 · 5982850
+  - Done when: GitHub shows the repo as Apache-2.0.
+- [x] **T-004** Build `scripts/crap.sh`, which joins `lizard` per-function complexity with `xccov` coverage and fails on CRAP ≥ 10 · P1 · F8.5 · D-004 · 3164d70
+  - Done when: it runs on the repo, prints the worst 10 functions, and exits non-zero above the threshold.
 - [x] **T-040** Add USE_CASES.md, ARCHITECTURE.md (Mermaid diagrams) and the docs index for human readers · c8b56da
