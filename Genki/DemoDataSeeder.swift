@@ -5,13 +5,17 @@ import UIKit
 @MainActor
 enum DemoDataSeeder {
     /// Inserts local sample records for development without touching a non-empty store.
+    /// It runs at most once per `defaults`, so seeding is idempotent.
     ///
     /// - Returns: `true` when records were inserted, otherwise `false`.
     @discardableResult
-    static func seedIfNeeded(in modelContext: ModelContext) throws -> Bool {
+    static func seedIfNeeded(
+        in modelContext: ModelContext,
+        defaults: UserDefaults = .standard
+    ) throws -> Bool {
 #if DEBUG
         let defaultsKey = "didSeedHealthRecordDemoData"
-        guard !UserDefaults.standard.bool(forKey: defaultsKey) else {
+        guard !defaults.bool(forKey: defaultsKey) else {
             return false
         }
 
@@ -19,7 +23,7 @@ enum DemoDataSeeder {
         descriptor.fetchLimit = 1
 
         guard try modelContext.fetch(descriptor).isEmpty else {
-            UserDefaults.standard.set(true, forKey: defaultsKey)
+            defaults.set(true, forKey: defaultsKey)
             return false
         }
 
@@ -38,7 +42,7 @@ enum DemoDataSeeder {
         )
 
         try modelContext.save()
-        UserDefaults.standard.set(true, forKey: defaultsKey)
+        defaults.set(true, forKey: defaultsKey)
         return true
 #else
         return false
