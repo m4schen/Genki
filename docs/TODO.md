@@ -13,6 +13,7 @@ The single backlog for humans and agents (D-011), ordered by milestone (D-019). 
 
 ## M0 Foundation
 
+Complete: T-001, T-002, T-003, T-004, T-019, T-020 and T-027 are in **Done**.
 
 ## M1 Data safety
 
