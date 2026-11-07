@@ -164,7 +164,7 @@ The document scanner needs a real device camera. Photo import and manual entry w
 | `Genki/String+Trimmed.swift`, `Genki/Binding+IsPresenting.swift` | Small shared helpers |
 | `GenkiTests/` | Swift Testing unit tests; `TestStore` gives each test an in-memory store |
 | `scripts/crap.sh`, `scripts/crap.py` | The CRAP gate |
-| `.github/workflows/ci.yml` | CI: lint, build + test, CRAP on every PR |
+| `.github/workflows/ci.yml`, `scripts/ci_simulator.py` | CI: lint, build + test, CRAP on every PR; the script picks or creates the test simulator |
 | `Genki/DesignSystem/` | Starting in M4: color, type and spacing tokens, and shared components (T-029) |
 
 ## Conventions

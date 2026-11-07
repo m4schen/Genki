@@ -13,8 +13,6 @@ The single backlog for humans and agents (D-011), ordered by milestone (D-019). 
 
 ## M0 Foundation
 
-- [~] @claude **T-020** GitHub Actions CI: build, test and lint on every PR, on `macos-26` · P1 · F8.6 · D-015 · workflow in 52d6a7f, waiting on its first PR run
-  - Done when: a PR shows a green check with all three steps; a deliberately failing test turns it red.
 
 ## M1 Data safety
 
@@ -120,4 +118,8 @@ Add questions here as `Q-n`, with the feature ID. Settle these before T-014 star
   - Done when: GitHub shows the repo as Apache-2.0.
 - [x] **T-004** Build `scripts/crap.sh`, which joins `lizard` per-function complexity with `xccov` coverage and fails on CRAP ≥ 10 · P1 · F8.5 · D-004 · 3164d70
   - Done when: it runs on the repo, prints the worst 10 functions, and exits non-zero above the threshold.
+- [x] **T-020** GitHub Actions CI: build, test and lint on every PR, on `macos-26` · P1 · F8.6 · D-015 · 52d6a7f, 85a963a
+  - Done when: a PR shows a green check with all three steps; a deliberately failing test turns it red.
+  - Proof (PR #4): run 42342747562 green on all steps (lint, simulator, build + test with warnings as errors, CRAP); run 42345387043 red on the deliberate `CIRedCheckTests` failure only (commit 4de43bc, reverted).
+  - First run failed: `xcodebuild` found no simulator by name although iPhone 17 on iOS 26.5 existed (inferred: the simulator service hadn't started). `scripts/ci_simulator.py` now runs `simctl` first and passes an exact UDID.
 - [x] **T-040** Add USE_CASES.md, ARCHITECTURE.md (Mermaid diagrams) and the docs index for human readers · c8b56da

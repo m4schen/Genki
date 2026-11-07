@@ -85,7 +85,7 @@ Last verified against code: 2026-11-07, branch `chore/m0-finish` (52d6a7f).
 | F8.3 | Accessibility | partial | yes | row views | Labels and combined rows exist; audit after the redesign (T-017) |
 | F8.4 | Unit tests (Swift Testing) | shipped | yes | `GenkiTests/` | 38 tests, including real Vision OCR on rendered text; pass on iPhone 17 and iPad Pro 11" (T-001, T-004) |
 | F8.5 | Quality gates: lint, CRAP, duplication, mutation | partial | yes | `.swiftlint.yml`, `scripts/crap.sh` | Lint (D-026) and CRAP (D-027) gates live; duplication and mutation still to build (T-005, T-006) |
-| F8.6 | CI on GitHub Actions | partial | yes | `.github/workflows/ci.yml` | Lint, build + test (warnings as errors), CRAP on macos-26; first PR run pending (T-020) |
+| F8.6 | CI on GitHub Actions | shipped | yes | `.github/workflows/ci.yml`, `scripts/ci_simulator.py` | Lint, build + test (warnings as errors), CRAP on macos-26; proven green and red on PR #4 (T-020) |
 | F8.7 | Swift 6 language mode | shipped | yes | build settings | Fixed at the cause with `nonisolated` value types (T-019, D-016) |
 | F8.8 | UI smoke test | planned | yes | — | One XCUITest flow (D-020, T-026) |
 | F8.9 | Apache-2.0 license | shipped | yes | `LICENSE` | GitHub's detection shows after merge to `main` (T-027, D-017) |
