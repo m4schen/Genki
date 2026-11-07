@@ -1,6 +1,6 @@
 # Quality gates on every PR and on main (AGENTS.md -> Quality gates, D-015).
-# Runs on GitHub's macOS 26 image: Xcode 26.6 with the iOS 26.5 simulator,
-# which is the app's minimum, so CI also catches APIs newer than 26.5.
+# Runs on GitHub's macOS 26 image with Xcode 26.6, testing on an iOS 26.5+
+# simulator (26.5 is the app's minimum), so CI also catches newer APIs.
 name: CI
 
 on:
@@ -22,7 +22,6 @@ jobs:
     timeout-minutes: 30
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
-      DESTINATION: platform=iOS Simulator,name=iPhone 17,OS=26.5
     steps:
       - uses: actions/checkout@v4
 
@@ -32,11 +31,18 @@ jobs:
           swiftlint version
           swiftlint lint --strict --reporter github-actions-logging
 
+      # The image lists simulator devices, but Xcode 26.6 saw none of them on
+      # the first run. So pick an iOS 26.5+ runtime and reuse or create a device.
+      - name: Pick an iOS simulator
+        run: |
+          xcrun simctl list runtimes
+          echo "SIMULATOR_UDID=$(python3 scripts/ci_simulator.py)" >> "$GITHUB_ENV"
+
       - name: Build and test (warnings are errors), with coverage
         run: |
           set -o pipefail
           xcodebuild -project Genki.xcodeproj -scheme Genki \
-            -destination "$DESTINATION" \
+            -destination "platform=iOS Simulator,id=$SIMULATOR_UDID" \
             -enableCodeCoverage YES \
             -resultBundlePath "$RUNNER_TEMP/tests.xcresult" \
             SWIFT_TREAT_WARNINGS_AS_ERRORS=YES \
