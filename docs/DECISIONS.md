@@ -178,3 +178,9 @@ Template:
 - Decision: `.swiftlint.yml` keeps SwiftLint's defaults and changes one rule: `trailing_comma: mandatory_comma: true`. It lints `Genki/` and `GenkiTests/`, and the gate is `swiftlint lint --strict`. No `swiftlint:disable` comments.
 - Why: The codebase already ends multi-line lists with a comma, as Airbnb's Swift style guide (`#trailing-commas`) requires. The defaults' length limits pointed at real smells, a 533-line form and an oversized struct, which the refactor fixed instead of suppressing.
 - Consequences: Under `--strict`, warnings fail the gate too. For example, a type body over 250 lines must be split.
+
+## D-027 CRAP gate scope
+- Date: 2026-11-07 · Status: accepted (implements D-004)
+- Decision: `scripts/crap.sh` scores every function that `lizard` finds under `Genki/`, except functions declared inside a type that conforms to `View`. A function fails at CRAP ≥ 10. CI runs the gate on every PR.
+- Why: Layout code has no unit tests by design (D-020 keeps UI testing to one smoke flow), so a View's CRAP would always be "uncovered" and the number would mean nothing. Everything else, including adapters like `OCRService`, has to be simple, tested, or both.
+- Consequences: `lizard` doesn't report computed properties, so their getters (for example `categoryValue`) aren't scored. Keep real logic in functions, or test the property directly.

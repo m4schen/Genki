@@ -84,10 +84,12 @@ The two stacks share principle names. ub-mode is the reduced set. This repo does
   | Build | `xcodebuild build` | no new warnings | now |
   | Tests | `xcodebuild test` | all pass | now |
   | Lint | `swiftlint lint --strict` | zero violations (D-026) | now |
-  | Crapper | `scripts/crap.sh`: `lizard` complexity + `xccov` coverage | CRAP < 10 per function, non-View code | once T-004 lands |
+  | Crapper | `scripts/crap.sh`: `lizard` complexity + `xccov` coverage | CRAP < 10 per function outside `View` types (D-027) | now |
   | Dryer | PMD CPD (`--language swift`) | no clone ≥ 50 tokens in `Genki/` | once T-005 lands |
   | Mutator | `muter` | no surviving mutants in changed non-View files | once T-006 lands |
   | UI smoke | XCUITest smoke flow | passes | once T-026 lands |
+
+  CI (`.github/workflows/ci.yml`) runs Lint, Build + Tests (with warnings treated as errors) and Crapper on every PR and on `main`.
 
   If a gate cannot run, say so in your report, for example "Mutator: not run, muter not installed". Never claim a gate passed when it did not run.
 - **Refactoring.** Pin what the code does, change the structure, then prove the behavior did not change.
@@ -104,7 +106,7 @@ The two stacks share principle names. ub-mode is the reduced set. This repo does
 - [ ] Every blocking gate in the table above passes. Every non-blocking gate passed, or the report names it as "not run" with the reason.
 - [ ] New behavior has a test that failed before the change.
 - [ ] UI changes were run in the simulator on iPhone and on iPad, with a screenshot checked. If the layout changed, also check the largest Dynamic Type size and dark mode.
-- [ ] CI is green on the PR (once T-020 lands).
+- [ ] CI is green on the PR.
 - [ ] `docs/TODO.md` item set to `[x]` with the commit hash. `docs/FEATURE_MAP.md` status updated. A `docs/DECISIONS.md` entry exists if a decision was made.
 - [ ] If a use-case flow or a diagrammed design changed, `docs/USE_CASES.md` or `docs/ARCHITECTURE.md` is updated in the same PR.
 - [ ] The final report cites only the principles that actually shaped a decision, and labels claims measured / inferred / guess.
@@ -118,15 +120,19 @@ If `xcodebuild` reports "requires Xcode, but active developer directory … is a
 xcodebuild -project Genki.xcodeproj -scheme Genki \
   -destination 'platform=iOS Simulator,name=iPhone 17' build | xcbeautify
 
-# Test: GenkiTests via the shared Genki scheme (verified: 33 tests on iPhone 17 and iPad Pro 11")
+# Test: GenkiTests via the shared Genki scheme (verified: 38 tests on iPhone 17)
 xcodebuild -project Genki.xcodeproj -scheme Genki \
   -destination 'platform=iOS Simulator,name=iPhone 17' test | xcbeautify
 
 # Lint (config: .swiftlint.yml, verified: 0 violations)
 swiftlint lint --strict
+
+# CRAP gate: runs the tests with coverage, then scores every function (D-027)
+# Needs lizard from PyPI (`pip install lizard`), not the Homebrew formula of that name
+scripts/crap.sh
 ```
 
-CI (T-020) will run the same commands on GitHub's `macos-26` runners. Those runners have Xcode 26.x, which also catches any API newer than the iOS 26.5 minimum.
+CI runs the same commands on GitHub's `macos-26` runner: Xcode 26.6 and the iOS 26.5 simulator, which is the app's minimum, so it also catches any API newer than 26.5.
 
 The document scanner needs a real device camera. Photo import and manual entry work in the simulator. Debug builds seed three fictional demo records on first launch.
 
@@ -157,6 +163,8 @@ The document scanner needs a real device camera. Photo import and manual entry w
 | `Genki/HealthRecordStyle.swift` | SF Symbols and tints per category/kind |
 | `Genki/String+Trimmed.swift`, `Genki/Binding+IsPresenting.swift` | Small shared helpers |
 | `GenkiTests/` | Swift Testing unit tests; `TestStore` gives each test an in-memory store |
+| `scripts/crap.sh`, `scripts/crap.py` | The CRAP gate |
+| `.github/workflows/ci.yml`, `scripts/ci_simulator.py` | CI: lint, build + test, CRAP on every PR; the script picks or creates the test simulator |
 | `Genki/DesignSystem/` | Starting in M4: color, type and spacing tokens, and shared components (T-029) |
 
 ## Conventions

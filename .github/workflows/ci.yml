@@ -1,0 +1,55 @@
+# Quality gates on every PR and on main (AGENTS.md -> Quality gates, D-015).
+# Runs on GitHub's macOS 26 image with Xcode 26.6, testing on an iOS 26.5+
+# simulator (26.5 is the app's minimum), so CI also catches newer APIs.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  gates:
+    name: Lint, build, test, CRAP
+    runs-on: macos-26
+    timeout-minutes: 30
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Lint (SwiftLint, strict)
+        run: |
+          brew install swiftlint
+          swiftlint version
+          swiftlint lint --strict --reporter github-actions-logging
+
+      # The image lists simulator devices, but Xcode 26.6 saw none of them on
+      # the first run. So pick an iOS 26.5+ runtime and reuse or create a device.
+      - name: Pick an iOS simulator
+        run: |
+          xcrun simctl list runtimes
+          echo "SIMULATOR_UDID=$(python3 scripts/ci_simulator.py)" >> "$GITHUB_ENV"
+
+      - name: Build and test (warnings are errors), with coverage
+        run: |
+          set -o pipefail
+          xcodebuild -project Genki.xcodeproj -scheme Genki \
+            -destination "platform=iOS Simulator,id=$SIMULATOR_UDID" \
+            -enableCodeCoverage YES \
+            -resultBundlePath "$RUNNER_TEMP/tests.xcresult" \
+            SWIFT_TREAT_WARNINGS_AS_ERRORS=YES \
+            test | xcbeautify --renderer github-actions
+
+      - name: CRAP gate
+        run: |
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install --quiet lizard==1.25.0
+          LIZARD="$RUNNER_TEMP/venv/bin/lizard" scripts/crap.sh "$RUNNER_TEMP/tests.xcresult"

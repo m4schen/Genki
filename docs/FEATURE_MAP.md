@@ -5,7 +5,7 @@ What Genki does today, what v1 needs, and where each piece lives. Change a statu
 **Status:** `shipped` works end to end · `partial` works with known gaps · `planned` agreed but not built · `deferred` agreed not now
 **v1:** `yes` must ship in the first App Store release · `post` after v1 (D-006)
 
-Last verified against code: 2026-11-06, branch `refactor/clean-core` (3621703).
+Last verified against code: 2026-11-07, branch `chore/m0-finish` (52d6a7f).
 
 ## F1 Records
 
@@ -83,12 +83,12 @@ Last verified against code: 2026-11-06, branch `refactor/clean-core` (3621703).
 | F8.1 | iPhone + iPad, both first-class | partial | yes | build settings | iPad runs the phone layout (F4.4, D-008) |
 | F8.2 | Localization: zh-Hans source, English second | planned | yes | — | No `.xcstrings` yet (D-009, T-011) |
 | F8.3 | Accessibility | partial | yes | row views | Labels and combined rows exist; audit after the redesign (T-017) |
-| F8.4 | Unit tests (Swift Testing) | shipped | yes | `GenkiTests/` | 33 tests; also pass on iPad Pro 11" (T-001) |
-| F8.5 | Quality gates: lint, CRAP, duplication, mutation | partial | yes | `.swiftlint.yml` | Lint gate live (T-003, D-026); CRAP/duplication/mutation still to build (T-004 … T-006) |
-| F8.6 | CI on GitHub Actions | planned | yes | — | D-015 (T-020) |
+| F8.4 | Unit tests (Swift Testing) | shipped | yes | `GenkiTests/` | 38 tests, including real Vision OCR on rendered text; pass on iPhone 17 and iPad Pro 11" (T-001, T-004) |
+| F8.5 | Quality gates: lint, CRAP, duplication, mutation | partial | yes | `.swiftlint.yml`, `scripts/crap.sh` | Lint (D-026) and CRAP (D-027) gates live; duplication and mutation still to build (T-005, T-006) |
+| F8.6 | CI on GitHub Actions | shipped | yes | `.github/workflows/ci.yml`, `scripts/ci_simulator.py` | Lint, build + test (warnings as errors), CRAP on macos-26; proven green and red on PR #4 (T-020) |
 | F8.7 | Swift 6 language mode | shipped | yes | build settings | Fixed at the cause with `nonisolated` value types (T-019, D-016) |
 | F8.8 | UI smoke test | planned | yes | — | One XCUITest flow (D-020, T-026) |
-| F8.9 | Apache-2.0 license | planned | yes | — | No LICENSE file yet (D-017, T-027) |
+| F8.9 | Apache-2.0 license | shipped | yes | `LICENSE` | GitHub's detection shows after merge to `main` (T-027, D-017) |
 
 ## F9 Developer support
 
