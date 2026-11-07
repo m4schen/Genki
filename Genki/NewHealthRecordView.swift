@@ -4,44 +4,39 @@ import SwiftUI
 import UniformTypeIdentifiers
 import VisionKit
 
+/// The add-record form (UC1, UC2). It owns only UI state. Every rule about
+/// the record lives in `RecordDraft`, where it's unit-tested.
 struct NewHealthRecordView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
 
-    @State private var occurredAt = Date.now
-    @State private var hospitalName = ""
-    @State private var department = ""
-    @State private var category = HealthRecordCategory.visit.rawValue
-    @State private var diagnosisOrConclusion = ""
+    @State private var draft = RecordDraft()
 
-    @State private var visitReason = ""
-    @State private var examinationResults = ""
-    @State private var medications = ""
-    @State private var doctorAdvice = ""
-    @State private var doctorName = ""
-    @State private var medicalRecordNumber = ""
-    @State private var hasFollowUpDate = false
-    @State private var followUpDate = Date.now
-    @State private var notes = ""
-    @State private var rawOCRText = ""
-
-    @State private var attachments: [AttachmentDraft] = []
     @State private var selectedPhotos: [PhotosPickerItem] = []
     @State private var isShowingScanner = false
     @State private var isRecognizing = false
     @State private var isMoreExpanded = false
     @State private var isOCRExpanded = false
     @State private var errorMessage: String?
-    @FocusState private var focusedField: InputField?
+    @State private var saveErrorMessage: String?
+    @FocusState private var focusedField: RecordFormField?
 
     var body: some View {
         NavigationStack {
             Form {
-                basicsSection
-                conclusionSection
+                RecordBasicsSection(draft: $draft, focusedField: $focusedField)
+                RecordConclusionSection(draft: $draft, focusedField: $focusedField)
                 attachmentsSection
-                moreSection
-                ocrSection
+                RecordMoreSection(
+                    draft: $draft,
+                    isExpanded: $isMoreExpanded,
+                    focusedField: $focusedField
+                )
+                RecordOCRSection(
+                    draft: $draft,
+                    isExpanded: $isOCRExpanded,
+                    focusedField: $focusedField
+                )
             }
             .scrollDismissesKeyboard(.interactively)
             .navigationTitle("添加记录")
@@ -93,6 +88,10 @@ struct NewHealthRecordView: View {
                     },
                     onCancel: {
                         isShowingScanner = false
+                    },
+                    onFailure: { error in
+                        isShowingScanner = false
+                        errorMessage = error.localizedDescription
                     }
                 )
                 .ignoresSafeArea()
@@ -103,70 +102,35 @@ struct NewHealthRecordView: View {
             }
             .alert(
                 "无法处理资料",
-                isPresented: Binding(
-                    get: { errorMessage != nil },
-                    set: { if !$0 { errorMessage = nil } }
-                )
+                isPresented: Binding(isPresenting: $errorMessage)
             ) {
                 Button("好", role: .cancel) {}
             } message: {
                 Text(errorMessage ?? "请重试。")
             }
-        }
-    }
-
-    private var basicsSection: some View {
-        Section {
-            Picker("记录类型", selection: $category) {
-                ForEach(HealthRecordCategory.allCases) { value in
-                    Text(value.title).tag(value.rawValue)
-                }
+            .alert(
+                "无法保存记录",
+                isPresented: Binding(isPresenting: $saveErrorMessage)
+            ) {
+                Button("好", role: .cancel) {}
+            } message: {
+                Text(saveErrorMessage ?? "请重试。")
             }
-            .pickerStyle(.segmented)
-
-            DatePicker("日期", selection: $occurredAt, displayedComponents: .date)
-
-            TextField("医院或体检机构", text: $hospitalName)
-                .textContentType(.organizationName)
-                .submitLabel(.next)
-                .focused($focusedField, equals: .hospital)
-                .onSubmit { focusedField = .department }
-
-            TextField("科室（可选）", text: $department)
-                .submitLabel(.next)
-                .focused($focusedField, equals: .department)
-                .onSubmit { focusedField = .conclusion }
-        } header: {
-            Text("基本信息")
         }
     }
 
-    private var conclusionSection: some View {
-        Section {
-            TextField(
-                "例如：未见明显异常、轻度近视、建议复查",
-                text: $diagnosisOrConclusion,
-                axis: .vertical
-            )
-            .lineLimit(3...6)
-            .focused($focusedField, equals: .conclusion)
-        } header: {
-            Text("诊断或结论")
-        } footer: {
-            Text("体检和检查没有疾病诊断时，直接记录报告结论。")
-        }
-    }
+    // MARK: Sections
 
     private var attachmentsSection: some View {
         Section {
-            if !attachments.isEmpty {
+            if !draft.attachments.isEmpty {
                 ScrollView(.horizontal) {
                     LazyHStack(spacing: 12) {
-                        ForEach(attachments) { attachment in
+                        ForEach(draft.attachments) { attachment in
                             AttachmentDraftThumbnail(
                                 attachment: attachment,
                                 onDelete: {
-                                    attachments.removeAll { $0.id == attachment.id }
+                                    draft.removeAttachment(id: attachment.id)
                                 }
                             )
                         }
@@ -204,8 +168,8 @@ struct NewHealthRecordView: View {
             HStack {
                 Text("资料与影像")
                 Spacer()
-                if !attachments.isEmpty {
-                    Text("\(attachments.count) 项")
+                if !draft.attachments.isEmpty {
+                    Text("\(draft.attachments.count) 项")
                 }
             }
         } footer: {
@@ -213,131 +177,29 @@ struct NewHealthRecordView: View {
         }
     }
 
-    private var moreSection: some View {
-        Section {
-            DisclosureGroup("更多信息", isExpanded: $isMoreExpanded) {
-                TextField(
-                    "就诊原因或主要症状",
-                    text: $visitReason,
-                    axis: .vertical
-                )
-                .lineLimit(2...5)
-                .focused($focusedField, equals: .reason)
+    // MARK: Keyboard focus
 
-                TextField(
-                    "检查或检验结果",
-                    text: $examinationResults,
-                    axis: .vertical
-                )
-                .lineLimit(2...6)
-                .focused($focusedField, equals: .results)
-
-                TextField(
-                    "医生建议或后续安排",
-                    text: $doctorAdvice,
-                    axis: .vertical
-                )
-                .lineLimit(2...5)
-                .focused($focusedField, equals: .advice)
-
-                TextField(
-                    "处方或用药",
-                    text: $medications,
-                    axis: .vertical
-                )
-                .lineLimit(2...5)
-                .focused($focusedField, equals: .medications)
-
-                TextField("医生姓名", text: $doctorName)
-                    .textContentType(.name)
-                    .focused($focusedField, equals: .doctor)
-
-                TextField("门诊号、住院号或报告编号", text: $medicalRecordNumber)
-                    .focused($focusedField, equals: .recordNumber)
-
-                Toggle("记录复查日期", isOn: $hasFollowUpDate)
-                if hasFollowUpDate {
-                    DatePicker(
-                        "复查日期",
-                        selection: $followUpDate,
-                        displayedComponents: .date
-                    )
-                }
-
-                TextField("个人备注", text: $notes, axis: .vertical)
-                    .lineLimit(2...5)
-                    .focused($focusedField, equals: .notes)
-            }
-        }
+    private var focusOrder: [RecordFormField] {
+        RecordFormField.focusOrder(isMoreExpanded: isMoreExpanded, isOCRExpanded: isOCRExpanded)
     }
 
-    private var ocrSection: some View {
-        Section {
-            DisclosureGroup("OCR 原文", isExpanded: $isOCRExpanded) {
-                TextEditor(text: $rawOCRText)
-                    .frame(minHeight: 150)
-                    .focused($focusedField, equals: .ocr)
-            }
-        } footer: {
-            Text("识别结果可能有误，请对照原始资料核对。")
-        }
+    private var previousField: RecordFormField? {
+        focusedField?.adjacent(by: -1, in: focusOrder)
     }
 
-    private var focusOrder: [InputField] {
-        var fields: [InputField] = [.hospital, .department, .conclusion]
-        if isMoreExpanded {
-            fields += [
-                .reason,
-                .results,
-                .advice,
-                .medications,
-                .doctor,
-                .recordNumber,
-                .notes,
-            ]
-        }
-        if isOCRExpanded {
-            fields.append(.ocr)
-        }
-        return fields
-    }
-
-    private var previousField: InputField? {
-        adjacentField(offset: -1)
-    }
-
-    private var nextField: InputField? {
-        adjacentField(offset: 1)
-    }
-
-    private func adjacentField(offset: Int) -> InputField? {
-        guard
-            let focusedField,
-            let index = focusOrder.firstIndex(of: focusedField)
-        else {
-            return nil
-        }
-
-        let destination = index + offset
-        guard focusOrder.indices.contains(destination) else { return nil }
-        return focusOrder[destination]
+    private var nextField: RecordFormField? {
+        focusedField?.adjacent(by: 1, in: focusOrder)
     }
 
     private func moveFocus(by offset: Int) {
-        focusedField = adjacentField(offset: offset)
+        focusedField = focusedField?.adjacent(by: offset, in: focusOrder)
     }
 
+    // MARK: Actions
+
     private func addScannedPages(_ pages: [Data]) {
-        let drafts = pages.enumerated().map { index, data in
-            AttachmentDraft(
-                data: data,
-                kind: .document,
-                contentType: UTType.jpeg.identifier,
-                displayName: "扫描页 \(attachments.count + index + 1)",
-                source: .scanner
-            )
-        }
-        add(drafts, recognizeText: true)
+        pages.forEach { draft.addScannedPage($0) }
+        recognizeText(in: pages)
     }
 
     private func importPhotos(_ items: [PhotosPickerItem]) {
@@ -346,25 +208,19 @@ struct NewHealthRecordView: View {
 
         Task {
             do {
-                var drafts: [AttachmentDraft] = []
-                for (index, item) in items.enumerated() {
+                var images: [Data] = []
+                for item in items {
                     guard let data = try await item.loadTransferable(type: Data.self) else {
                         continue
                     }
-                    drafts.append(
-                        AttachmentDraft(
-                            data: data,
-                            kind: .medicalImage,
-                            contentType: item.supportedContentTypes.first?.identifier
-                                ?? UTType.image.identifier,
-                            displayName: "影像 \(attachments.count + index + 1)",
-                            source: .photoLibrary
-                        )
-                    )
+                    let contentType = item.supportedContentTypes.first?.identifier
+                        ?? UTType.image.identifier
+                    draft.addImportedImage(data, contentType: contentType)
+                    images.append(data)
                 }
 
                 selectedPhotos = []
-                add(drafts, recognizeText: true)
+                recognizeText(in: images)
             } catch {
                 isRecognizing = false
                 errorMessage = error.localizedDescription
@@ -372,162 +228,32 @@ struct NewHealthRecordView: View {
         }
     }
 
-    private func add(_ drafts: [AttachmentDraft], recognizeText: Bool) {
-        guard !drafts.isEmpty else {
-            isRecognizing = false
-            return
-        }
-
-        attachments.append(contentsOf: drafts)
-        guard recognizeText else {
+    /// Runs on-device OCR on newly added images and hands the text to the
+    /// draft, which decides which fields it may fill.
+    private func recognizeText(in images: [Data]) {
+        guard !images.isEmpty else {
             isRecognizing = false
             return
         }
 
         isRecognizing = true
         Task {
+            defer { isRecognizing = false }
             do {
-                let text = try await OCRService.recognize(
-                    imageData: drafts.map(\.data)
-                )
-                if !text.isEmpty {
-                    rawOCRText = rawOCRText.isEmpty ? text : rawOCRText + "\n\n" + text
-                    apply(HealthFieldExtractor.extract(from: text))
-                    inferCategory(from: text)
-                }
+                let text = try await OCRService.recognize(imageData: images)
+                draft.applyRecognizedText(text)
             } catch {
                 errorMessage = error.localizedDescription
             }
-            isRecognizing = false
-        }
-    }
-
-    private func apply(_ fields: ExtractedHealthFields) {
-        if let date = fields.occurredAt {
-            occurredAt = date
-        }
-        fillIfEmpty(&hospitalName, with: fields.hospitalName)
-        fillIfEmpty(&department, with: fields.department)
-        fillIfEmpty(&doctorName, with: fields.doctorName)
-        fillIfEmpty(&medicalRecordNumber, with: fields.medicalRecordNumber)
-        fillIfEmpty(&visitReason, with: fields.visitReason)
-        fillIfEmpty(&diagnosisOrConclusion, with: fields.diagnosisOrConclusion)
-        fillIfEmpty(&examinationResults, with: fields.examinationResults)
-        fillIfEmpty(&medications, with: fields.medications)
-        fillIfEmpty(&doctorAdvice, with: fields.doctorAdvice)
-    }
-
-    private func fillIfEmpty(_ target: inout String, with value: String?) {
-        guard target.trimmed.isEmpty else { return }
-        target = value ?? target
-    }
-
-    private func inferCategory(from text: String) {
-        guard category == HealthRecordCategory.visit.rawValue else { return }
-
-        if text.contains("体检") {
-            category = HealthRecordCategory.checkup.rawValue
-        } else if text.contains("检验报告") || text.contains("检查报告") {
-            category = HealthRecordCategory.test.rawValue
         }
     }
 
     private func save() {
-        let record = HealthRecord(
-            occurredAt: occurredAt,
-            hospitalName: hospitalName.trimmed,
-            department: department.trimmed,
-            doctorName: doctorName.trimmed,
-            category: category,
-            medicalRecordNumber: medicalRecordNumber.trimmed,
-            visitReason: visitReason.trimmed,
-            diagnosisOrConclusion: diagnosisOrConclusion.trimmed,
-            examinationResults: examinationResults.trimmed,
-            medications: medications.trimmed,
-            doctorAdvice: doctorAdvice.trimmed,
-            followUpDate: hasFollowUpDate ? followUpDate : nil,
-            notes: notes.trimmed,
-            rawOCRText: rawOCRText.trimmed
-        )
-        modelContext.insert(record)
-
-        for (index, draft) in attachments.enumerated() {
-            modelContext.insert(
-                RecordAttachment(
-                    sortOrder: index,
-                    kind: draft.kind.rawValue,
-                    contentType: draft.contentType,
-                    displayName: draft.displayName,
-                    source: draft.source.rawValue,
-                    data: draft.data,
-                    record: record
-                )
-            )
+        do {
+            try draft.save(in: modelContext)
+            dismiss()
+        } catch {
+            saveErrorMessage = error.localizedDescription
         }
-
-        dismiss()
-    }
-}
-
-private enum InputField: Hashable {
-    case hospital
-    case department
-    case conclusion
-    case reason
-    case results
-    case advice
-    case medications
-    case doctor
-    case recordNumber
-    case notes
-    case ocr
-}
-
-private struct AttachmentDraft: Identifiable {
-    let id = UUID()
-    let data: Data
-    let kind: AttachmentKind
-    let contentType: String
-    let displayName: String
-    let source: AttachmentSource
-}
-
-private struct AttachmentDraftThumbnail: View {
-    let attachment: AttachmentDraft
-    let onDelete: () -> Void
-
-    var body: some View {
-        ZStack(alignment: .topTrailing) {
-            Group {
-                if let image = UIImage(data: attachment.data) {
-                    Image(uiImage: image)
-                        .resizable()
-                        .scaledToFill()
-                } else {
-                    Image(systemName: "doc")
-                        .font(.title)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            .frame(width: 88, height: 104)
-            .background(.quaternary)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-
-            Button(action: onDelete) {
-                Image(systemName: "xmark.circle.fill")
-                    .symbolRenderingMode(.palette)
-                    .foregroundStyle(.white, .black.opacity(0.55))
-                    .font(.title3)
-            }
-            .buttonStyle(.plain)
-            .padding(5)
-            .accessibilityLabel("移除\(attachment.displayName)")
-        }
-    }
-}
-
-private extension String {
-    var trimmed: String {
-        trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }

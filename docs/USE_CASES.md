@@ -14,12 +14,12 @@ This is what Genki does for the patient, written so a human can check it and an 
 
 | ID | Use case | Milestone | Tasks | Today |
 |---|---|---|---|---|
-| UC1 | Add a record from a paper report or images | M0–M2 | T-002, T-013, T-022, T-038, T-039 | partial |
-| UC2 | Add a record by hand | M1 | T-009 | partial: a failed save is invisible |
+| UC1 | Add a record from a paper report or images | M0–M2 | T-013, T-022, T-042 | partial: no PDF import or "from OCR" marker yet |
+| UC2 | Add a record by hand | — | — | shipped |
 | UC3 | Find a record | — | T-018 | shipped |
 | UC4 | View a record and its images | — | — | shipped |
-| UC5 | Edit a record | M1–M2 | T-039, T-010 | missing |
-| UC6 | Delete a record | M1 | T-008 | partial: no confirmation |
+| UC5 | Edit a record | M2 | T-010 | missing (`RecordDraft` is ready for it) |
+| UC6 | Delete a record | — | — | shipped: confirmation dialog |
 | UC7 | Back up the archive | M1 | T-014 | missing |
 | UC8 | Restore the archive | M1 | T-014, Q-1, Q-2 | missing |
 | UC9 | Share images with a doctor | M2 | T-023 | missing |
@@ -55,9 +55,7 @@ Only UC1, UC7 and UC8 are written out in full below. They're where a mistake los
 
 **Postconditions:** the record and the original images are on the device, and nothing left the device.
 
-**Today:**
-- Step 5 is broken for the date and the category. `apply()` replaces `occurredAt` whenever OCR finds a date, even one the patient picked (`NewHealthRecordView.swift:405`). `inferCategory` can't tell the default "visit" from a "visit" the patient chose (`:425`). → T-038
-- Step 7a doesn't exist yet → T-009
+**Today:** steps 5, 5a and 7a work as written. `DraftField.suggest` fills only fields still at their default (T-038, fixed in 5c1231f), and `RecordDraft.save(in:)` reports a failed save (T-009). Verified in the simulator with a fictional report: a date picked by hand survived OCR.
 
 ---
 

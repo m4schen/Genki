@@ -3,29 +3,19 @@ import SwiftUI
 
 @main
 struct GenkiApp: App {
-    var sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            HealthRecord.self,
-            RecordAttachment.self,
-        ])
-        let modelConfiguration = ModelConfiguration(
-            schema: schema,
-            isStoredInMemoryOnly: false,
-            cloudKitDatabase: .none
-        )
-
-        do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
-        } catch {
-            fatalError("Could not create ModelContainer: \(error)")
-        }
-    }()
+    /// A store that can't be opened is recoverable, because the data is
+    /// still on disk. So it becomes a screen, not a `fatalError`.
+    private let store = Result { try GenkiStore.makeContainer() }
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .environment(\.healthDataIntegration, .localOnly)
+            switch store {
+            case .success(let container):
+                ContentView()
+                    .modelContainer(container)
+            case .failure(let error):
+                StoreUnavailableView(error: error)
+            }
         }
-        .modelContainer(sharedModelContainer)
     }
 }

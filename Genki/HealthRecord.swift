@@ -117,7 +117,7 @@ final class RecordAttachment {
     }
 }
 
-enum HealthRecordCategory: String, CaseIterable, Identifiable {
+nonisolated enum HealthRecordCategory: String, CaseIterable, Identifiable, Sendable {
     case visit
     case checkup
     case test
@@ -135,7 +135,7 @@ enum HealthRecordCategory: String, CaseIterable, Identifiable {
     }
 }
 
-enum AttachmentKind: String, CaseIterable, Identifiable {
+nonisolated enum AttachmentKind: String, CaseIterable, Identifiable {
     case document
     case medicalImage
     case photo
@@ -153,7 +153,7 @@ enum AttachmentKind: String, CaseIterable, Identifiable {
     }
 }
 
-enum AttachmentSource: String {
+nonisolated enum AttachmentSource: String {
     case scanner
     case photoLibrary
     case fileImport
@@ -184,10 +184,6 @@ extension HealthRecord {
 }
 
 extension RecordAttachment {
-    var data: Data {
-        imageData
-    }
-
     var kindValue: AttachmentKind {
         AttachmentKind(rawValue: kind) ?? .other
     }

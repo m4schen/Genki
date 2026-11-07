@@ -9,39 +9,19 @@ struct ContentView: View {
     @State private var searchText = ""
     @State private var isShowingNewRecord = false
     @State private var demoSeedError: String?
+    @State private var pendingDeletion: HealthRecord?
+    @State private var deletionError: String?
 
     private var filteredRecords: [HealthRecord] {
-        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !query.isEmpty else { return records }
-
-        return records.filter { record in
-            [
-                record.hospitalName,
-                record.department,
-                record.doctorName,
-                record.categoryTitle,
-                record.visitReason,
-                record.diagnosisOrConclusion,
-                record.examinationResults,
-                record.medications,
-                record.doctorAdvice,
-                record.notes,
-                record.rawOCRText,
-            ]
-            .contains { $0.localizedStandardContains(query) }
-        }
+        RecordTimeline.filter(records, matching: searchText)
     }
 
     private var monthSections: [RecordMonthSection] {
-        let calendar = Calendar.current
-        let groups = Dictionary(grouping: filteredRecords) { record in
-            calendar.dateInterval(of: .month, for: record.occurredAt)?.start
-                ?? calendar.startOfDay(for: record.occurredAt)
-        }
+        RecordTimeline.monthSections(of: filteredRecords)
+    }
 
-        return groups
-            .map { RecordMonthSection(month: $0.key, records: $0.value) }
-            .sorted { $0.month > $1.month }
+    private var isSearching: Bool {
+        !searchText.trimmed.isEmpty
     }
 
     var body: some View {
@@ -50,21 +30,17 @@ struct ContentView: View {
                 if filteredRecords.isEmpty {
                     ContentUnavailableView {
                         Label(
-                            searchText.trimmed.isEmpty
-                                ? "还没有健康记录"
-                                : "没有搜索结果",
-                            systemImage: searchText.trimmed.isEmpty
-                                ? "heart.text.clipboard"
-                                : "magnifyingglass"
+                            isSearching ? "没有搜索结果" : "还没有健康记录",
+                            systemImage: isSearching ? "magnifyingglass" : "heart.text.clipboard"
                         )
                     } description: {
                         Text(
-                            searchText.trimmed.isEmpty
-                                ? "把不同医院的就诊、体检和检查集中在这里。"
-                                : "可以搜索医院、诊断、检查结果、药名或 OCR 原文。"
+                            isSearching
+                                ? "可以搜索医院、诊断、检查结果、药名或 OCR 原文。"
+                                : "把不同医院的就诊、体检和检查集中在这里。"
                         )
                     } actions: {
-                        if searchText.trimmed.isEmpty {
+                        if !isSearching {
                             Button("添加记录") {
                                 isShowingNewRecord = true
                             }
@@ -81,9 +57,14 @@ struct ContentView: View {
                                     } label: {
                                         HealthRecordRow(record: record)
                                     }
-                                }
-                                .onDelete { offsets in
-                                    deleteRecords(offsets, from: section.records)
+                                    // A swipe action, not `.onDelete`. `.onDelete` animates
+                                    // the row away before the patient confirms.
+                                    .swipeActions(edge: .trailing) {
+                                        Button("删除", systemImage: "trash") {
+                                            pendingDeletion = record
+                                        }
+                                        .tint(.red)
+                                    }
                                 }
                             } header: {
                                 Text(
@@ -123,32 +104,51 @@ struct ContentView: View {
             }
             .alert(
                 "演示数据载入失败",
-                isPresented: Binding(
-                    get: { demoSeedError != nil },
-                    set: { if !$0 { demoSeedError = nil } }
-                )
+                isPresented: Binding(isPresenting: $demoSeedError)
             ) {
                 Button("好", role: .cancel) {}
             } message: {
                 Text(demoSeedError ?? "")
             }
-        }
-    }
-
-    private func deleteRecords(_ offsets: IndexSet, from section: [HealthRecord]) {
-        withAnimation {
-            for index in offsets {
-                modelContext.delete(section[index])
+            .confirmationDialog(
+                "删除这条记录？",
+                isPresented: Binding(isPresenting: $pendingDeletion),
+                titleVisibility: .visible,
+                presenting: pendingDeletion
+            ) { record in
+                Button("删除", role: .destructive) {
+                    delete(record)
+                }
+                Button("取消", role: .cancel) {}
+            } message: { _ in
+                Text("记录和其中的资料会从本机删除，无法恢复。")
+            }
+            .alert(
+                "无法删除记录",
+                isPresented: Binding(isPresenting: $deletionError)
+            ) {
+                Button("好", role: .cancel) {}
+            } message: {
+                Text(deletionError ?? "")
             }
         }
     }
-}
 
-private struct RecordMonthSection: Identifiable {
-    let month: Date
-    let records: [HealthRecord]
+    /// Runs only after the patient confirms (non-negotiable 3). It saves
+    /// explicitly. If the save fails, the deletion is rolled back so the
+    /// record reappears instead of being half-deleted.
+    private func delete(_ record: HealthRecord) {
+        withAnimation {
+            modelContext.delete(record)
+        }
 
-    var id: Date { month }
+        do {
+            try modelContext.save()
+        } catch {
+            modelContext.rollback()
+            deletionError = error.localizedDescription
+        }
+    }
 }
 
 private struct HealthRecordRow: View {
@@ -227,12 +227,6 @@ private struct HealthRecordRow: View {
 
     private var summaryIsEmpty: Bool {
         record.diagnosisOrConclusion.isEmpty && record.visitReason.isEmpty
-    }
-}
-
-private extension String {
-    var trimmed: String {
-        trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }
 
